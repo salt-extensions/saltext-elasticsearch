@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.0.1](https://github.com/salt-extensions/saltext-elasticsearch/commits/0.0.1) - 2023-11-06
+
 ## [0.0.7](https://github.com/cesan3/salt-ext-elasticsearch/compare/0.0.6...0.0.7) - 2023-11-06
 - Revert "fix: obsoletes saltext.elasticsearch8" by @cesan3 in https://github.com/cesan3/salt-ext-elasticsearch/pull/12
 
