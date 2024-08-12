@@ -1,9 +1,12 @@
 """
     :codeauthor: Cesar Sanchez <cesan3@gmail.com>
 """
+
 import pytest
+
 from elasticsearch import NotFoundError
 from elasticsearch import TransportError
+
 
 class ApiResult:
     def __init__(self, meta, body):

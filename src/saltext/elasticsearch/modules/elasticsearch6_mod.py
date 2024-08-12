@@ -51,7 +51,8 @@ overwrite options passed into pillar.
 
 Some functionality might be limited by elasticsearch-py and Elasticsearch server versions.
 """
-# pylint: disable=too-many-lines
+
+# pylint: disable=too-many-lines,raise-missing-from
 import logging
 import re
 
@@ -63,6 +64,7 @@ log = logging.getLogger(__name__)
 __salt__ = globals().get("__salt__", {})
 
 import elasticsearch
+
 try:
     import elasticsearch
     from elasticsearch import RequestsHttpConnection
@@ -75,6 +77,7 @@ except ImportError:
     ES_MAJOR_VERSION = 0
 
 __virtualname__ = "elasticsearch"
+
 
 def __virtual__():
     """
@@ -165,9 +168,7 @@ def _get_instance(hosts=None, profile=None):
         es.info()
     except elasticsearch.exceptions.TransportError as err:
         raise CommandExecutionError(
-            "Could not connect to Elasticsearch host/ cluster {} due to {}".format(
-                hosts, err
-            )
+            f"Could not connect to Elasticsearch host/ cluster {hosts} due to {err}"
         )
     return es
 
@@ -307,9 +308,7 @@ def cluster_stats(nodes=None, hosts=None, profile=None):
         )
 
 
-def cluster_get_settings(
-    flat_settings=False, include_defaults=False, hosts=None, profile=None
-):
+def cluster_get_settings(flat_settings=False, include_defaults=False, hosts=None, profile=None):
     """
     .. versionadded:: 3000
 
@@ -400,9 +399,7 @@ def alias_create(indices, alias, hosts=None, body=None, profile=None, source=Non
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         result = es.indices.put_alias(index=indices, name=alias, body=body)
         return result.get("acknowledged", False)
@@ -433,9 +430,7 @@ def alias_delete(indices, aliases, hosts=None, body=None, profile=None, source=N
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         result = es.indices.delete_alias(index=indices, name=aliases)
 
@@ -506,9 +501,7 @@ def alias_get(indices=None, aliases=None, hosts=None, profile=None):
         )
 
 
-def document_create(
-    index, doc_type, body=None, id=None, hosts=None, profile=None, source=None
-):
+def document_create(index, doc_type, body=None, id=None, hosts=None, profile=None, source=None):
     """
     Create a document in a specified index
 
@@ -534,9 +527,7 @@ def document_create(
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         return es.index(index=index, doc_type=doc_type, body=body, id=id)
     except elasticsearch.TransportError as e:
@@ -659,14 +650,10 @@ def index_create(index, body=None, hosts=None, profile=None, source=None):
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         result = es.indices.create(index=index, body=body)
-        return result.get("acknowledged", False) and result.get(
-            "shards_acknowledged", True
-        )
+        return result.get("acknowledged", False) and result.get("shards_acknowledged", True)
     except elasticsearch.TransportError as e:
         if "index_already_exists_exception" == e.error:
             return True
@@ -955,9 +942,7 @@ def index_put_settings(body=None, hosts=None, profile=None, source=None, **kwarg
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
 
     # Filtering Salt internal keys
     filtered_kwargs = kwargs.copy()
@@ -1002,9 +987,7 @@ def mapping_create(index, doc_type, body=None, hosts=None, profile=None, source=
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         result = es.indices.put_mapping(index=index, doc_type=doc_type, body=body)
 
@@ -1102,9 +1085,7 @@ def index_template_create(name, body=None, hosts=None, profile=None, source=None
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         result = es.indices.put_template(name=name, body=body)
         return result.get("acknowledged", False)
@@ -1571,9 +1552,7 @@ def snapshot_status(
         )
 
 
-def snapshot_get(
-    repository, snapshot, ignore_unavailable=False, hosts=None, profile=None
-):
+def snapshot_get(repository, snapshot, ignore_unavailable=False, hosts=None, profile=None):
     """
     .. versionadded:: 2017.7.0
 
@@ -1603,9 +1582,7 @@ def snapshot_get(
     except elasticsearch.TransportError as e:
         raise CommandExecutionError(
             "Cannot obtain details of snapshot {} in repository {}, server returned"
-            " code {} with message {}".format(
-                snapshot, repository, e.status_code, e.error
-            )
+            " code {} with message {}".format(snapshot, repository, e.status_code, e.error)
         )
 
 
@@ -1631,9 +1608,7 @@ def snapshot_create(repository, snapshot, body=None, hosts=None, profile=None):
     es = _get_instance(hosts, profile)
 
     try:
-        response = es.snapshot.create(
-            repository=repository, snapshot=snapshot, body=body
-        )
+        response = es.snapshot.create(repository=repository, snapshot=snapshot, body=body)
 
         return response.get("accepted", False)
     except elasticsearch.TransportError as e:
@@ -1665,9 +1640,7 @@ def snapshot_restore(repository, snapshot, body=None, hosts=None, profile=None):
     es = _get_instance(hosts, profile)
 
     try:
-        response = es.snapshot.restore(
-            repository=repository, snapshot=snapshot, body=body
-        )
+        response = es.snapshot.restore(repository=repository, snapshot=snapshot, body=body)
 
         return response.get("accepted", False)
     except elasticsearch.TransportError as e:

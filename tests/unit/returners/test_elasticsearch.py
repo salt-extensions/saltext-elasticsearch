@@ -1,6 +1,7 @@
 """
 Test the elasticsearch returner
 """
+
 import pytest
 
 from tests.support.mock import MagicMock
@@ -22,6 +23,7 @@ if HAS_ELASTIC:
         import saltext.elasticsearch.returners.elasticsearch6_mod as elasticsearch_return
         from tests.support.esmockutils.elasticsearch_mock import MockElastic
 
+
 @pytest.fixture
 def configure_loader_modules():
     return {elasticsearch_return: {}}
@@ -37,9 +39,7 @@ class ElasticSearchReturnerTestCase(TestCase):
         Test __virtual__ function when elasticsearch
         and the elasticsearch module is not available
         """
-        with patch.dict(
-            elasticsearch_return.__salt__, {"elasticsearch.index_exists": MagicMock()}
-        ):
+        with patch.dict(elasticsearch_return.__salt__, {"elasticsearch.index_exists": MagicMock()}):
             result = elasticsearch_return.__virtual__()
             expected = "elasticsearch"
             assert expected == result

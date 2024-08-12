@@ -205,7 +205,9 @@ def tests(session):
             "--include=tests/*",
         )
         try:
-            session.run("coverage", "report", "--show-missing", "--include=src/saltext/elasticsearch/*")
+            session.run(
+                "coverage", "report", "--show-missing", "--include=src/saltext/elasticsearch/*"
+            )
             # If you also want to display the code coverage report on the CLI
             # for the tests, comment the call above and uncomment the line below
             # session.run(

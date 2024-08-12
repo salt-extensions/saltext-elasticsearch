@@ -1,11 +1,10 @@
 import pytest
 import salt.modules.cp as cp
-import saltext.elasticsearch.states.elasticsearch_mod as elasticsearch_state
 
+import saltext.elasticsearch.states.elasticsearch_mod as elasticsearch_state
 from tests.support.mock import MagicMock
 from tests.support.mock import patch
 from tests.support.unit import TestCase
-
 
 HAS_ELASTIC = True
 try:
@@ -13,12 +12,9 @@ try:
 except Exception:  # pylint: disable=broad-except
     HAS_ELASTIC = False
 
+
 def get_es_config(key):
-    config_es = {
-        "elasticsearch": {
-            "host": "http://localhost:9200"
-        }
-    }
+    config_es = {"elasticsearch": {"host": "http://localhost:9200"}}
     return config_es.get(key)
 
 
@@ -29,9 +25,9 @@ def configure_loader_modules():
         "__salt__": {
             "config.option": get_es_config,
             "cp.get_file_str": cp.get_file_str,
-            "elasticsearch.index_get": MagicMock(return_value=index_get_result)
+            "elasticsearch.index_get": MagicMock(return_value=index_get_result),
         },
-        "__opts__": {}
+        "__opts__": {},
     }
     return {
         elasticsearch_state: module_globals,
@@ -46,6 +42,7 @@ class ElasticsearchTestCase(TestCase):
     """
     Elasticsearch TestCase
     """
+
     def setUp(self):
         self.__opts__ = {"test": True}
 
@@ -60,7 +57,7 @@ class ElasticsearchTestCase(TestCase):
             "name": "test1",
             "changes": {"old": {"abcd"}},
             "result": None,
-            "comment": "Index test1 will be removed"
+            "comment": "Index test1 will be removed",
         }
         with patch.object(elasticsearch_state, "__opts__", MagicMock(return_value=self.__opts__)):
             assert elasticsearch_state.index_absent("test1") == result

@@ -8,7 +8,6 @@ from tests.support.mock import MagicMock
 from tests.support.mock import patch
 from tests.support.unit import TestCase
 
-
 HAS_ELASTIC = True
 try:
     import elasticsearch as elastic
@@ -24,32 +23,27 @@ if HAS_ELASTIC:
         import saltext.elasticsearch.modules.elasticsearch6_mod as elasticsearch_module
         from tests.support.esmockutils.elasticsearch_mock import MockElastic
 
+
 def get_es_config(key):
-    config_es = {
-        "elasticsearch": {
-            "host": "http://localhost:9200"
-        }
-    }
+    config_es = {"elasticsearch": {"host": "http://localhost:9200"}}
     return config_es.get(key)
 
 
 @pytest.fixture
 def configure_loader_modules():
     module_globals = {
-        "__salt__": {
-            "config.option": get_es_config,
-            "cp.get_file_str": cp.get_file_str
-        },
+        "__salt__": {"config.option": get_es_config, "cp.get_file_str": cp.get_file_str},
     }
     return {
         elasticsearch_module: module_globals,
     }
 
+
 @pytest.mark.skipif(
     not HAS_ELASTIC,
     reason="Install elasticsearch-py before running Elasticsearch unit tests.",
 )
-class ElasticsearchBaseTestCase(object):
+class ElasticsearchBaseTestCase:
     """
     Test cases for salt.modules.elasticsearch
     """
@@ -70,7 +64,9 @@ class ElasticsearchBaseTestCase(object):
         """
         Test if ping succeeds
         """
-        with patch.object(elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())):
+        with patch.object(
+            elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+        ):
             assert elasticsearch_module.ping()
 
     # 'info' function tests: 2
@@ -79,7 +75,9 @@ class ElasticsearchBaseTestCase(object):
         """
         Test if status fetch succeeds
         """
-        with patch.object(elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())):
+        with patch.object(
+            elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+        ):
             assert elasticsearch_module.info() == [{"test": "key"}]
 
     def test_info_failure(self):
@@ -115,7 +113,6 @@ class ElasticsearchBaseTestCase(object):
             MagicMock(return_value=MockElastic(failure=True)),
         ):
             pytest.raises(CommandExecutionError, elasticsearch_module.node_info)
-
 
     # 'cluster_health' function tests: 2
 
@@ -232,9 +229,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.alias_delete, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.alias_delete, "foo", "bar")
 
     # 'alias_exists' function tests: 3
 
@@ -267,9 +262,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.alias_exists, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.alias_exists, "foo", "bar")
 
     # 'alias_get' function tests: 3
 
@@ -302,9 +295,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.alias_get, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.alias_get, "foo", "bar")
 
     # 'document_create' function tests: 2
 
@@ -326,9 +317,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.document_create, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.document_create, "foo", "bar")
 
     # 'document_delete' function tests: 2
 
@@ -389,9 +378,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.document_exists, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.document_exists, "foo", "bar")
 
     # 'document_get' function tests: 3
 
@@ -424,9 +411,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.document_get, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.document_get, "foo", "bar")
 
     # 'index_create' function tests: 5
 
@@ -481,9 +466,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.index_create, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.index_create, "foo", "bar")
 
     # 'index_delete' function tests: 3
 
@@ -516,9 +499,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.index_delete, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.index_delete, "foo", "bar")
 
     # 'index_exists' function tests: 3
 
@@ -551,9 +532,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.index_exists, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.index_exists, "foo", "bar")
 
     def test_index_get_settings(self):
         """
@@ -655,9 +634,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.index_get, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.index_get, "foo", "bar")
 
     # 'index_open' function tests: 3
 
@@ -690,9 +667,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.index_open, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.index_open, "foo", "bar")
 
     # 'index_close' function tests: 3
 
@@ -725,9 +700,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.index_close, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.index_close, "foo", "bar")
 
     # 'mapping_create' function tests: 3
 
@@ -865,9 +838,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.index_template_delete, "foo"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.index_template_delete, "foo")
 
     # 'index_template_exists' function tests: 3
 
@@ -900,9 +871,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.index_template_exists, "foo"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.index_template_exists, "foo")
 
     # 'index_template_get' function tests: 3
 
@@ -935,9 +904,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.index_template_get, "foo"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.index_template_get, "foo")
 
     # 'pipeline_get' function tests: 4
 
@@ -1014,9 +981,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.pipeline_delete, "foo"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.pipeline_delete, "foo")
 
     def test_pipeline_delete_wrong_version(self):
         """
@@ -1027,9 +992,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(no_ingest=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.pipeline_delete, "foo"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.pipeline_delete, "foo")
 
     # 'pipeline_create' function tests: 4
 
@@ -1053,9 +1016,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(failure=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.pipeline_create, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.pipeline_create, "foo", "bar")
 
     def test_pipeline_create_wrong_version(self):
         """
@@ -1066,9 +1027,7 @@ class ElasticsearchBaseTestCase(object):
             "_get_instance",
             MagicMock(return_value=MockElastic(no_ingest=True)),
         ):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.pipeline_create, "foo", "bar"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.pipeline_create, "foo", "bar")
 
     # 'pipeline_simulate' function tests: 3
 
@@ -1117,7 +1076,10 @@ class ElasticsearchBaseTestCase(object):
         with patch.object(
             elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
         ):
-            assert elasticsearch_module.cluster_get_settings() == {"transient": {}, "persistent": {}}
+            assert elasticsearch_module.cluster_get_settings() == {
+                "transient": {},
+                "persistent": {},
+            }
 
     def test_cluster_get_settings_failure(self):
         """
@@ -1172,9 +1134,7 @@ class ElasticsearchBaseTestCase(object):
         """
         fake_es = MagicMock(return_value=MockElastic(failure=True))
         with patch.object(elasticsearch_module, "_get_instance", fake_es):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.repository_get, name="foo"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.repository_get, name="foo")
 
     def test_snapshot_create_repository(self):
         """
@@ -1254,9 +1214,7 @@ class ElasticsearchBaseTestCase(object):
         """
         fake_es = MagicMock(return_value=MockElastic(failure=True))
         with patch.object(elasticsearch_module, "_get_instance", fake_es):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.repository_delete, name="foo"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.repository_delete, name="foo")
 
     def test_snapshot_verify_repository(self):
         """
@@ -1280,9 +1238,7 @@ class ElasticsearchBaseTestCase(object):
         """
         fake_es = MagicMock(return_value=MockElastic(failure=True))
         with patch.object(elasticsearch_module, "_get_instance", fake_es):
-            pytest.raises(
-                CommandExecutionError, elasticsearch_module.repository_verify, name="foo"
-            )
+            pytest.raises(CommandExecutionError, elasticsearch_module.repository_verify, name="foo")
 
     def test_snapshot_status(self):
         """
@@ -1306,9 +1262,7 @@ class ElasticsearchBaseTestCase(object):
         """
         Test snapshot get method
         """
-        expected = {
-            "snapshots": [{"snapshot": "foo", "uuid": "foo", "repository": "foo"}]
-        }
+        expected = {"snapshots": [{"snapshot": "foo", "uuid": "foo", "repository": "foo"}]}
         fake_es = MagicMock(return_value=MockElastic())
         with patch.object(elasticsearch_module, "_get_instance", fake_es):
             assert elasticsearch_module.snapshot_get(repository="foo", snapshot="foo") == expected
@@ -1426,11 +1380,14 @@ class ElasticsearchBaseTestCase(object):
                 snapshot="foo",
             )
 
+
 if ES_MAJOR_VERSION < 8:
+
     class Elasticsearch6TestCase(ElasticsearchBaseTestCase, TestCase):
         """
         Test cases for Elasticsearch 6-7
         """
+
         def test_ping_failure(self):
             """
             Test if ping fails
@@ -1464,11 +1421,14 @@ if ES_MAJOR_VERSION < 8:
             fake_es = MagicMock(return_value=MockElastic(failure=True))
             with patch.object(elasticsearch_module, "_get_instance", fake_es):
                 pytest.raises(CommandExecutionError, elasticsearch_module.flush_synced)
+
 else:
+
     class Elasticsearch8TestCase(ElasticsearchBaseTestCase, TestCase):
         """
         Test cases for Elasticsearch 8+
         """
+
         def test_ping_failure(self):
             """
             Test if ping fails
@@ -1521,9 +1481,8 @@ else:
                 "_get_instance",
                 MagicMock(return_value=MockElastic(failure=True)),
             ):
-                pytest.raises(
-                    CommandExecutionError, elasticsearch_module.cluster_pending_tasks
-                )
+                pytest.raises(CommandExecutionError, elasticsearch_module.cluster_pending_tasks)
+
         def test_cluster_put_settings_succeess(self):
             """
             Test if cluster put_settings succeeds
@@ -1558,7 +1517,7 @@ else:
                     CommandExecutionError,
                     elasticsearch_module.cluster_put_settings,
                     persistent=persistent,
-                    transient=transient
+                    transient=transient,
                 )
 
         def test_flush_succeeds(self):
@@ -1771,7 +1730,9 @@ else:
             """
             fake_es = MagicMock(return_value=MockElastic())
             with patch.object(elasticsearch_module, "_get_instance", fake_es):
-                assert elasticsearch_module.snapshot_clone(repository="foo", snapshot="foo", target_snapshot="bar")
+                assert elasticsearch_module.snapshot_clone(
+                    repository="foo", snapshot="foo", target_snapshot="bar"
+                )
 
         def test_snapshot_clone_not(self):
             """
@@ -1779,7 +1740,9 @@ else:
             """
             fake_es = MagicMock(return_value=MockElastic(ack=False))
             with patch.object(elasticsearch_module, "_get_instance", fake_es):
-                assert not elasticsearch_module.snapshot_clone(repository="foo", snapshot="foo", target_snapshot="bar")
+                assert not elasticsearch_module.snapshot_clone(
+                    repository="foo", snapshot="foo", target_snapshot="bar"
+                )
 
         def test_snapshot_clone_failure(self):
             """
@@ -1826,6 +1789,4 @@ else:
                 "_get_instance",
                 MagicMock(return_value=MockElastic(failure=True)),
             ):
-                pytest.raises(
-                    CommandExecutionError, elasticsearch_module.template_exists, "foo"
-                )
+                pytest.raises(CommandExecutionError, elasticsearch_module.template_exists, "foo")
