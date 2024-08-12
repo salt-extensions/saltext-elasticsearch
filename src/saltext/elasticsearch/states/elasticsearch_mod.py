@@ -1,6 +1,7 @@
 """
 Salt state module
 """
+
 import logging
 
 import salt.utils.json
