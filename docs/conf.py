@@ -26,7 +26,7 @@ except NameError:
     docs_basepath = os.path.abspath(os.path.dirname("."))
 
 addtl_paths = (
-    os.path.join(os.pardir, "src"),  # saltext.ttp itself (for autodoc)
+    os.path.join(os.pardir, "src"),  # saltext.elasticsearch itself (for autodoc)
     "_ext",  # custom Sphinx extensions
 )
 
@@ -41,10 +41,10 @@ this_year = datetime.datetime.today().year
 if this_year == 2021:
     copyright_year = 2021
 else:
-    copyright_year = "2021 - {}".format(this_year)
+    copyright_year = f"2021 - {this_year}"
 project = dist.metadata["Summary"]
 author = dist.metadata["Author"]
-copyright = "{}, {}".format(copyright_year, author)
+copyright = f"{copyright_year}, {author}"
 
 # The full version, including alpha/beta/rc tags
 release = dist.version
@@ -61,8 +61,6 @@ rst_prolog = """
 )
 
 # -- General configuration ---------------------------------------------------
-
-#html_theme = 'furo'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -114,13 +112,13 @@ html_static_path = ["_static"]
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = ''
+html_logo = ""
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large. Favicons can be up to at least 228x228. PNG
 # format is supported as well, not just .ico'
-html_favicon = ''
+html_favicon = ""
 
 # Sphinx Napoleon Config
 napoleon_google_docstring = True

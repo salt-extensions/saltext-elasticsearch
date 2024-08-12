@@ -2,13 +2,13 @@
 minimum_pre_commit_version: 2.4.0
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.0.1
     hooks:
       - id: check-merge-conflict  # Check for files that contain merge conflict strings.
       - id: trailing-whitespace   # Trims trailing whitespace.
         args: [--markdown-linebreak-ext=md]
       - id: mixed-line-ending     # Replaces or checks mixed line ending.
-        args: [--fix=auto]
+        args: [--fix=lf]
       - id: end-of-file-fixer     # Makes sure files end in a newline and only a newline.
       - id: check-merge-conflict  # Check for files that contain merge conflict strings.
       - id: check-ast             # Simply check whether files parse as valid python.
@@ -37,7 +37,7 @@ repos:
 
   - repo: https://github.com/s0undt3ch/salt-rewrite
     # Automatically rewrite code with known rules
-    rev: 2.5.2
+    rev: 1.3.3
     hooks:
       - id: salt-rewrite
         alias: rewrite-docstrings
@@ -47,7 +47,7 @@ repos:
 
   - repo: https://github.com/s0undt3ch/salt-rewrite
     # Automatically rewrite code with known rules
-    rev: 2.5.2
+    rev: 1.3.3
     hooks:
       - id: salt-rewrite
         alias: rewrite-tests
@@ -55,18 +55,18 @@ repos:
         files: ^tests/.*\.py$
         args: [--silent, -E, fix_docstrings]
 
-          #- repo: https://github.com/asottile/pyupgrade
-          #  rev: v2.23.3
-          #  hooks:
-          #    - id: pyupgrade
-          #      name: Rewrite Code to be Py3.6+
-          #      args: [
-          #        --py36-plus
-          #      ]
-          #      exclude: src/saltext/saltext_elasticsearch/version.py
-          #
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.37.2
+    hooks:
+      - id: pyupgrade
+        name: Rewrite Code to be Py3.6+
+        args: [
+          --py36-plus
+        ]
+        exclude: src/saltext/elasticsearch/version.py
+
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.12.0
+    rev: v2.6.0
     hooks:
       - id: reorder-python-imports
         args: [
@@ -74,33 +74,29 @@ repos:
         ]
         exclude: src/saltext/elasticsearch/version.py
 
-          #- repo: https://github.com/psf/black
-          #  rev: 21.7b0
-          #  hooks:
-          #    - id: black
-          #      args: [-l 100]
-          #      exclude: src/saltext/saltext_elasticsearch/version.py
+  - repo: https://github.com/psf/black
+    rev: 22.6.0
+    hooks:
+      - id: black
+        args: [-l 100]
+        exclude: src/saltext/elasticsearch/version.py
+        additional_dependencies:
+          - click<8.1.0
 
   - repo: https://github.com/asottile/blacken-docs
-    rev: 1.16.0
+    rev: v1.12.1
     hooks:
       - id: blacken-docs
         args: [--skip-errors]
         files: ^(docs/.*\.rst|src/saltext/elasticsearch/.*\.py)$
-        additional_dependencies: [black==22.1.0]
-
-  - repo: https://github.com/myint/rstcheck
-    rev: 3f92957
-    hooks:
-      - id: rstcheck
-        name: Check reST files using rstcheck
-        args: [--report=warning, --ignore-directives=automodule]
-        additional_dependencies: [sphinx]
+        additional_dependencies:
+          - black==22.6.0
+          - click<8.1.0
   # <---- Formatting -----------------------------------------------------------------------------
 
   # ----- Security ------------------------------------------------------------------------------>
   - repo: https://github.com/PyCQA/bandit
-    rev: "1.7.5"
+    rev: "1.7.0"
     hooks:
       - id: bandit
         alias: bandit-salt
@@ -108,7 +104,7 @@ repos:
         args: [--silent, -lll, --skip, B701]
         exclude: src/saltext/elasticsearch/version.py
   - repo: https://github.com/PyCQA/bandit
-    rev: "1.7.5"
+    rev: "1.7.0"
     hooks:
       - id: bandit
         alias: bandit-tests
@@ -118,34 +114,34 @@ repos:
   # <---- Security -------------------------------------------------------------------------------
 
   # ----- Code Analysis ------------------------------------------------------------------------->
-  #  - repo: https://github.com/saltstack/mirrors-nox
-  #    rev: v2021.6.12
-  #    hooks:
-  #      - id: nox
-  #        alias: lint-src
-  #        name: Lint Source Code
-  #        files: ^((setup|noxfile)|src/.*)\.py$
-  #        args:
-  #          - -e
-  #          - lint-code-pre-commit
-  #          - --
-  #
-  #  - repo: https://github.com/saltstack/mirrors-nox
-  #    rev: v2021.6.12
-  #    hooks:
-  #      - id: nox
-  #        alias: lint-tests
-  #        name: Lint Tests
-  #        files: ^tests/.*\.py$
-  #        args:
-  #          - -e
-  #          - lint-tests-pre-commit
-  #          - --
+  - repo: https://github.com/saltstack/mirrors-nox
+    rev: v2021.6.12
+    hooks:
+      - id: nox
+        alias: lint-src
+        name: Lint Source Code
+        files: ^((setup|noxfile)|src/.*)\.py$
+        args:
+          - -e
+          - lint-code-pre-commit
+          - --
+
+  - repo: https://github.com/saltstack/mirrors-nox
+    rev: v2021.6.12
+    hooks:
+      - id: nox
+        alias: lint-tests
+        name: Lint Tests
+        files: ^tests/.*\.py$
+        args:
+          - -e
+          - lint-tests-pre-commit
+          - --
   # <---- Code Analysis --------------------------------------------------------------------------
 
   # ----- Static Test Requirements -------------------------------------------------------------->
   - repo: https://github.com/saltstack/pip-tools-compile-impersonate
-    rev: '4.8'
+    rev: '4.1'
     hooks:
       - id: pip-tools-compile
         alias: compile-3.6-test-requirements

@@ -1,11 +1,5 @@
 [build-system]
-requires = [
-    "setuptools>=50.3.2",
-    "wheel",
-    "setuptools-declarative-requirements",
-    "setuptools_scm[toml]>=3.4",
-    "python-semantic-release>=7.16.0"
-]
+requires = ["setuptools>=50.3.2", "wheel", "setuptools-declarative-requirements", "setuptools_scm[toml]>=3.4"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
@@ -14,54 +8,3 @@ write_to_template = "__version__ = \"{version}\""
 
 [tool.black]
 line-length = 100
-
-[tool.semantic_release]
-version_variable = "src/saltext/elasticsearch/version.py:__version__"
-version_source = "tag"
-upload_to_pypi = false
-commit_subject = "chore(release): {version} [skip ci]"
-commit_author = "semantic-release"
-commit_email = "devops@local"
-build_command = false
-changelog_file = false
-major_on_zero = false
-
-[tool.towncrier]
-package = "saltext.elasticsearch"
-filename = "CHANGELOG.md"
-template = "changelog/.template.jinja"
-directory = "changelog/"
-start_string = "# Changelog\n"
-underlines = ["", "", ""]
-title_format = "## {version} ({project_date})"
-issue_format = "[#{issue}](https://github.com/salt-extensions/saltext-elasticsearch/issues/{issue})"
-
-[[tool.towncrier.type]]
-directory = "removed"
-name = "Removed"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "deprecated"
-name = "Deprecated"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "changed"
-name = "Changed"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "fixed"
-name = "Fixed"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "added"
-name = "Added"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "security"
-name = "Security"
-showcontent = true
