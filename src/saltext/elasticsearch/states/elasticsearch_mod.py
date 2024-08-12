@@ -4,31 +4,22 @@ Salt state module
 
 import logging
 
+import salt.utils.dictdiffer
 import salt.utils.json
 
 log = logging.getLogger(__name__)
-
-try:
-    import elasticsearch
-
-    HAS_ELASTICSEARCH = True
-except ImportError:
-    HAS_ELASTICSEARCH = False
 
 __virtualname__ = "elasticsearch"
 
 
 def __virtual__():
-    """
-    Load elasticsearch library if installed.
-    """
-    if not HAS_ELASTICSEARCH:
-        return (
-            False,
-            "Cannot load module elasticsearch: elasticsearch librarielastic not found",
-        )
-    else:
+    if "elasticsearch" in __salt__:
         return __virtualname__
+
+    return (
+        False,
+        "elasticsearch execution module missing",
+    )
 
 
 def index_absent(name, hosts=None, profile=None):
@@ -232,7 +223,7 @@ def alias_present(name, indices, hosts=None, profile=None, **kwargs):
         if filter_definition is None:
             filter_definition = {}
 
-        ret["changes"] = __utils__["dictdiffer.deep_diff"](old, filter_definition)
+        ret["changes"] = salt.utils.dictdiffer.deep_diff(old, filter_definition)
 
         if ret["changes"] or not filter_definition:
             if __opts__["test"]:
@@ -404,7 +395,7 @@ def index_template_present(name, hosts=None, profile=None, check_definition=Fals
                 for key in ("mappings", "aliases", "settings"):
                     if current_template[key] == {} and key not in definition_parsed:
                         del current_template[key]
-                diff = __utils__["dictdiffer.deep_diff"](current_template, definition_parsed)
+                diff = salt.utils.dictdiffer.deep_diff(current_template, definition_parsed)
                 if len(diff) != 0:
                     if __opts__["test"]:
                         ret["comment"] = f"Index template {name} exist but need to be updated"
@@ -528,7 +519,7 @@ def pipeline_present(name, hosts=None, profile=None, **kwargs):
         old = {}
         if pipeline and name in pipeline:
             old = pipeline[name]
-        ret["changes"] = __utils__["dictdiffer.deep_diff"](old, definition)
+        ret["changes"] = salt.utils.dictdiffer.deep_diff(old, definition)
 
         if ret["changes"] or (not description or not processors):
             if __opts__["test"]:
@@ -625,7 +616,7 @@ def script_present(name, hosts=None, profile=None, **kwargs):
         if template:
             old = salt.utils.json.loads(template["template"])
 
-        ret["changes"] = __utils__["dictdiffer.deep_diff"](old, script)
+        ret["changes"] = salt.utils.dictdiffer.deep_diff(old, script)
 
         if ret["changes"] or not script:
             if __opts__["test"]:

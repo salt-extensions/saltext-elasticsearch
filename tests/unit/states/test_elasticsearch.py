@@ -1,16 +1,13 @@
+from unittest.mock import MagicMock
+from unittest.mock import patch
+
 import pytest
 import salt.modules.cp as cp
 
 import saltext.elasticsearch.states.elasticsearch_mod as elasticsearch_state
-from tests.support.mock import MagicMock
-from tests.support.mock import patch
 from tests.support.unit import TestCase
 
-HAS_ELASTIC = True
-try:
-    import elasticsearch as elastic
-except Exception:  # pylint: disable=broad-except
-    HAS_ELASTIC = False
+elastic = pytest.importorskip("elasticsearch")
 
 
 def get_es_config(key):
@@ -34,10 +31,6 @@ def configure_loader_modules():
     }
 
 
-@pytest.mark.skipif(
-    not HAS_ELASTIC,
-    reason="Install elasticsearch-py before running Elasticsearch unit tests.",
-)
 class ElasticsearchTestCase(TestCase):
     """
     Elasticsearch TestCase

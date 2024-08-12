@@ -100,6 +100,7 @@ def _get_instance(hosts=None, profile=None):
     verify_certs = True
     http_auth = None
     timeout = 10
+    _profile = None
 
     if profile is None:
         profile = "elasticsearch"

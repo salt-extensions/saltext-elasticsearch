@@ -54,16 +54,9 @@ Some functionality might be limited by elasticsearch-py and Elasticsearch server
 
 # pylint: disable=too-many-lines,raise-missing-from
 import logging
-import re
 
 from salt.exceptions import CommandExecutionError
 from salt.exceptions import SaltInvocationError
-
-log = logging.getLogger(__name__)
-
-__salt__ = globals().get("__salt__", {})
-
-import elasticsearch
 
 try:
     import elasticsearch
@@ -77,6 +70,8 @@ except ImportError:
     ES_MAJOR_VERSION = 0
 
 __virtualname__ = "elasticsearch"
+
+log = logging.getLogger(__name__)
 
 
 def __virtual__():
@@ -108,6 +103,7 @@ def _get_instance(hosts=None, profile=None):
     verify_certs = True
     http_auth = None
     timeout = 10
+    _profile = None
 
     if profile is None:
         profile = "elasticsearch"

@@ -1,27 +1,23 @@
 # pylint: disable=too-many-lines
+from unittest.mock import MagicMock
+from unittest.mock import patch
+
 import pytest
 import salt.modules.cp as cp
 from salt.exceptions import CommandExecutionError
 from salt.exceptions import SaltInvocationError
 
-from tests.support.mock import MagicMock
-from tests.support.mock import patch
 from tests.support.unit import TestCase
 
-HAS_ELASTIC = True
-try:
-    import elasticsearch as elastic
-except Exception:  # pylint: disable=broad-except
-    HAS_ELASTIC = False
+elastic = pytest.importorskip("elasticsearch")
 
-if HAS_ELASTIC:
-    ES_MAJOR_VERSION = elastic.__version__[0]
-    if ES_MAJOR_VERSION >= 8:
-        import saltext.elasticsearch.modules.elasticsearch8_mod as elasticsearch_module
-        from tests.support.esmockutils.elasticsearch_mock8 import MockElastic
-    else:
-        import saltext.elasticsearch.modules.elasticsearch6_mod as elasticsearch_module
-        from tests.support.esmockutils.elasticsearch_mock import MockElastic
+ES_MAJOR_VERSION = elastic.__version__[0]
+if ES_MAJOR_VERSION >= 8:
+    import saltext.elasticsearch.modules.elasticsearch8_mod as elasticsearch_module
+    from tests.support.esmockutils.elasticsearch_mock8 import MockElastic
+else:
+    import saltext.elasticsearch.modules.elasticsearch6_mod as elasticsearch_module
+    from tests.support.esmockutils.elasticsearch_mock import MockElastic
 
 
 def get_es_config(key):
@@ -39,10 +35,6 @@ def configure_loader_modules():
     }
 
 
-@pytest.mark.skipif(
-    not HAS_ELASTIC,
-    reason="Install elasticsearch-py before running Elasticsearch unit tests.",
-)
 class ElasticsearchBaseTestCase:
     """
     Test cases for salt.modules.elasticsearch
