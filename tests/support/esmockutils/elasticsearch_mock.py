@@ -506,6 +506,7 @@ class MockElasticSnapshot:
         _api_meta = namedtuple("api_error", "status")
         _meta = _api_meta(0)
         if self.failure:
+            # pylint: disable=too-many-function-args
             raise TransportError("error restoring snapshot", _meta, "")
         return {"accepted": self.accepted}
 
