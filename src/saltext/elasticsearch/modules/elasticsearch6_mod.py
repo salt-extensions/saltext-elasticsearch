@@ -9,7 +9,7 @@ Module to provide Elasticsearch compatibility to Salt
 
 :codeauthor: Cesar Sanchez <cesan3@gmail.com>
 
-:depends: elasticsearch-py <http://elasticsearch-py.readthedocs.org/en/latest/>
+:depends: elasticsearch-py <https://elasticsearch-py.readthedocs.io/en/latest/>
 
 :configuration: This module accepts connection configuration details either as
                 parameters or as configuration settings in /etc/salt/minion on the relevant
@@ -344,7 +344,7 @@ def cluster_put_settings(body=None, flat_settings=False, hosts=None, profile=Non
 
     body
         The settings to be updated. Can be either 'transient' or 'persistent' (survives cluster restart)
-        http://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-update-settings.html
+        https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-update-settings.html
 
     flat_settings
         Return settings in flat format.
@@ -843,7 +843,7 @@ def index_get_settings(hosts=None, profile=None, **kwargs):
     .. versionadded:: 3000
 
     Check for the existence of an index and if it exists, return its settings
-    http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-settings.html
+    https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-settings.html
 
     index
         (Optional, string) A comma-separated list of index names; use _all or empty string for all indices. Defaults to '_all'.
@@ -925,7 +925,7 @@ def index_put_settings(body=None, hosts=None, profile=None, source=None, **kwarg
 
     .. note::
         Elasticsearch time units can be found here:
-        https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#time-units
+        https://www.elastic.co/guide/en/elasticsearch/reference/current/api-conventions.html#time-units
 
     CLI Example:
 
@@ -1065,7 +1065,7 @@ def index_template_create(name, body=None, hosts=None, profile=None, source=None
         Index template name
 
     body
-        Template definition as specified in http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-templates.html
+        Template definition as specified in https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-templates.html
 
     source
         URL to file specifying template definition. Cannot be used in combination with ``body``.
@@ -1683,7 +1683,7 @@ def flush_synced(hosts=None, profile=None, **kwargs):
     .. versionadded:: 3000
 
     Perform a normal flush, then add a generated unique marker (sync_id) to all shards.
-    http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-synced-flush.html
+    https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-synced-flush-api.html
 
     index
         (Optional, string) A comma-separated list of index names; use _all or empty string for all indices. Defaults to '_all'.

@@ -9,7 +9,7 @@ Module to provide Elasticsearch compatibility to Salt
 
 :codeauthor: Cesar Sanchez <cesan3@gmail.com>
 
-:depends: elasticsearch-py <http://elasticsearch-py.readthedocs.org/en/latest/>
+:depends: elasticsearch-py <https://elasticsearch-py.readthedocs.io/en/latest/>
 
 :configuration: This module accepts connection configuration details either as
                 parameters or as configuration settings in /etc/salt/minion on the relevant
@@ -625,7 +625,7 @@ def cluster_put_settings(
 
     body
         The settings to be updated. Can be either 'transient' or 'persistent' (survives cluster restart)
-        http://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-update-settings.html
+        https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-update-settings.html
 
     flat_settings
         Return settings in flat format.
@@ -1751,7 +1751,7 @@ def index_get_settings(
     .. versionadded:: 3000
 
     Check for the existence of an index and if it exists, return its settings
-    http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-settings.html
+    https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-settings.html
 
     index
         (Optional, string) A comma-separated list of index names;
