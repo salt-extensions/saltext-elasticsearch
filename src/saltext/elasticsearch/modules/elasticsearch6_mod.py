@@ -9,7 +9,7 @@ Module to provide Elasticsearch compatibility to Salt
 
 :codeauthor: Cesar Sanchez <cesan3@gmail.com>
 
-:depends: elasticsearch-py <http://elasticsearch-py.readthedocs.org/en/latest/>
+:depends: elasticsearch-py <https://elasticsearch-py.readthedocs.io/en/latest/>
 
 :configuration: This module accepts connection configuration details either as
                 parameters or as configuration settings in /etc/salt/minion on the relevant
@@ -51,18 +51,13 @@ overwrite options passed into pillar.
 
 Some functionality might be limited by elasticsearch-py and Elasticsearch server versions.
 """
-# pylint: disable=too-many-lines
+
+# pylint: disable=too-many-lines,raise-missing-from
 import logging
-import re
 
 from salt.exceptions import CommandExecutionError
 from salt.exceptions import SaltInvocationError
 
-log = logging.getLogger(__name__)
-
-__salt__ = globals().get("__salt__", {})
-
-import elasticsearch
 try:
     import elasticsearch
     from elasticsearch import RequestsHttpConnection
@@ -75,6 +70,9 @@ except ImportError:
     ES_MAJOR_VERSION = 0
 
 __virtualname__ = "elasticsearch"
+
+log = logging.getLogger(__name__)
+
 
 def __virtual__():
     """
@@ -105,6 +103,7 @@ def _get_instance(hosts=None, profile=None):
     verify_certs = True
     http_auth = None
     timeout = 10
+    _profile = None
 
     if profile is None:
         profile = "elasticsearch"
@@ -165,9 +164,7 @@ def _get_instance(hosts=None, profile=None):
         es.info()
     except elasticsearch.exceptions.TransportError as err:
         raise CommandExecutionError(
-            "Could not connect to Elasticsearch host/ cluster {} due to {}".format(
-                hosts, err
-            )
+            f"Could not connect to Elasticsearch host/ cluster {hosts} due to {err}"
         )
     return es
 
@@ -307,9 +304,7 @@ def cluster_stats(nodes=None, hosts=None, profile=None):
         )
 
 
-def cluster_get_settings(
-    flat_settings=False, include_defaults=False, hosts=None, profile=None
-):
+def cluster_get_settings(flat_settings=False, include_defaults=False, hosts=None, profile=None):
     """
     .. versionadded:: 3000
 
@@ -349,7 +344,7 @@ def cluster_put_settings(body=None, flat_settings=False, hosts=None, profile=Non
 
     body
         The settings to be updated. Can be either 'transient' or 'persistent' (survives cluster restart)
-        http://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-update-settings.html
+        https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-update-settings.html
 
     flat_settings
         Return settings in flat format.
@@ -400,9 +395,7 @@ def alias_create(indices, alias, hosts=None, body=None, profile=None, source=Non
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         result = es.indices.put_alias(index=indices, name=alias, body=body)
         return result.get("acknowledged", False)
@@ -433,9 +426,7 @@ def alias_delete(indices, aliases, hosts=None, body=None, profile=None, source=N
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         result = es.indices.delete_alias(index=indices, name=aliases)
 
@@ -506,9 +497,7 @@ def alias_get(indices=None, aliases=None, hosts=None, profile=None):
         )
 
 
-def document_create(
-    index, doc_type, body=None, id=None, hosts=None, profile=None, source=None
-):
+def document_create(index, doc_type, body=None, id=None, hosts=None, profile=None, source=None):
     """
     Create a document in a specified index
 
@@ -534,9 +523,7 @@ def document_create(
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         return es.index(index=index, doc_type=doc_type, body=body, id=id)
     except elasticsearch.TransportError as e:
@@ -659,14 +646,10 @@ def index_create(index, body=None, hosts=None, profile=None, source=None):
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         result = es.indices.create(index=index, body=body)
-        return result.get("acknowledged", False) and result.get(
-            "shards_acknowledged", True
-        )
+        return result.get("acknowledged", False) and result.get("shards_acknowledged", True)
     except elasticsearch.TransportError as e:
         if "index_already_exists_exception" == e.error:
             return True
@@ -860,7 +843,7 @@ def index_get_settings(hosts=None, profile=None, **kwargs):
     .. versionadded:: 3000
 
     Check for the existence of an index and if it exists, return its settings
-    http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-settings.html
+    https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-settings.html
 
     index
         (Optional, string) A comma-separated list of index names; use _all or empty string for all indices. Defaults to '_all'.
@@ -942,7 +925,7 @@ def index_put_settings(body=None, hosts=None, profile=None, source=None, **kwarg
 
     .. note::
         Elasticsearch time units can be found here:
-        https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#time-units
+        https://www.elastic.co/guide/en/elasticsearch/reference/current/api-conventions.html#time-units
 
     CLI Example:
 
@@ -955,9 +938,7 @@ def index_put_settings(body=None, hosts=None, profile=None, source=None, **kwarg
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
 
     # Filtering Salt internal keys
     filtered_kwargs = kwargs.copy()
@@ -1002,9 +983,7 @@ def mapping_create(index, doc_type, body=None, hosts=None, profile=None, source=
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         result = es.indices.put_mapping(index=index, doc_type=doc_type, body=body)
 
@@ -1086,7 +1065,7 @@ def index_template_create(name, body=None, hosts=None, profile=None, source=None
         Index template name
 
     body
-        Template definition as specified in http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-templates.html
+        Template definition as specified in https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-templates.html
 
     source
         URL to file specifying template definition. Cannot be used in combination with ``body``.
@@ -1102,9 +1081,7 @@ def index_template_create(name, body=None, hosts=None, profile=None, source=None
         message = "Either body or source should be specified but not both."
         raise SaltInvocationError(message)
     if source:
-        body = __salt__["cp.get_file_str"](
-            source, saltenv=__opts__.get("saltenv", "base")
-        )
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
         result = es.indices.put_template(name=name, body=body)
         return result.get("acknowledged", False)
@@ -1571,9 +1548,7 @@ def snapshot_status(
         )
 
 
-def snapshot_get(
-    repository, snapshot, ignore_unavailable=False, hosts=None, profile=None
-):
+def snapshot_get(repository, snapshot, ignore_unavailable=False, hosts=None, profile=None):
     """
     .. versionadded:: 2017.7.0
 
@@ -1603,9 +1578,7 @@ def snapshot_get(
     except elasticsearch.TransportError as e:
         raise CommandExecutionError(
             "Cannot obtain details of snapshot {} in repository {}, server returned"
-            " code {} with message {}".format(
-                snapshot, repository, e.status_code, e.error
-            )
+            " code {} with message {}".format(snapshot, repository, e.status_code, e.error)
         )
 
 
@@ -1631,9 +1604,7 @@ def snapshot_create(repository, snapshot, body=None, hosts=None, profile=None):
     es = _get_instance(hosts, profile)
 
     try:
-        response = es.snapshot.create(
-            repository=repository, snapshot=snapshot, body=body
-        )
+        response = es.snapshot.create(repository=repository, snapshot=snapshot, body=body)
 
         return response.get("accepted", False)
     except elasticsearch.TransportError as e:
@@ -1665,9 +1636,7 @@ def snapshot_restore(repository, snapshot, body=None, hosts=None, profile=None):
     es = _get_instance(hosts, profile)
 
     try:
-        response = es.snapshot.restore(
-            repository=repository, snapshot=snapshot, body=body
-        )
+        response = es.snapshot.restore(repository=repository, snapshot=snapshot, body=body)
 
         return response.get("accepted", False)
     except elasticsearch.TransportError as e:
@@ -1714,7 +1683,7 @@ def flush_synced(hosts=None, profile=None, **kwargs):
     .. versionadded:: 3000
 
     Perform a normal flush, then add a generated unique marker (sync_id) to all shards.
-    http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-synced-flush.html
+    https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-synced-flush-api.html
 
     index
         (Optional, string) A comma-separated list of index names; use _all or empty string for all indices. Defaults to '_all'.

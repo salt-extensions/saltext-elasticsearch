@@ -1,32 +1,25 @@
 """
 Salt state module
 """
+
 import logging
 
+import salt.utils.dictdiffer
 import salt.utils.json
 
 log = logging.getLogger(__name__)
-
-try:
-    import elasticsearch
-    HAS_ELASTICSEARCH = True
-except ImportError:
-    HAS_ELASTICSEARCH = False
 
 __virtualname__ = "elasticsearch"
 
 
 def __virtual__():
-    """
-    Load elasticsearch library if installed.
-    """
-    if not HAS_ELASTICSEARCH:
-        return (
-            False,
-            "Cannot load module elasticsearch: elasticsearch librarielastic not found",
-        )
-    else:
+    if "elasticsearch" in __salt__:
         return __virtualname__
+
+    return (
+        False,
+        "elasticsearch execution module missing",
+    )
 
 
 def index_absent(name, hosts=None, profile=None):
@@ -47,7 +40,9 @@ def index_absent(name, hosts=None, profile=None):
                 ret["changes"]["old"] = index[name]
                 ret["result"] = None
             else:
-                ret["result"] = __salt__["elasticsearch.index_delete"](index=name, hosts=hosts, profile=profile)
+                ret["result"] = __salt__["elasticsearch.index_delete"](
+                    index=name, hosts=hosts, profile=profile
+                )
                 if ret["result"]:
                     ret["comment"] = f"Successfully removed index {name}".format(name)
                     ret["changes"]["old"] = index[name]
@@ -106,7 +101,9 @@ def index_present(name, hosts=None, profile=None, **kwargs):
     source = kwargs.pop("source", None)
 
     try:
-        index_exists = __salt__["elasticsearch.index_exists"](index=name, hosts=hosts, profile=profile)
+        index_exists = __salt__["elasticsearch.index_exists"](
+            index=name, hosts=hosts, profile=profile
+        )
         if not index_exists:
             if __opts__["test"]:
                 ret["comment"] = f"Index {name} does not exist and will be created"
@@ -119,7 +116,9 @@ def index_present(name, hosts=None, profile=None, **kwargs):
                 if output:
                     ret["comment"] = f"Successfully created index {name}"
                     ret["changes"] = {
-                        "new": __salt__["elasticsearch.index_get"](index=name, hosts=hosts, profile=profile)[name]
+                        "new": __salt__["elasticsearch.index_get"](
+                            index=name, hosts=hosts, profile=profile
+                        )[name]
                     }
                 else:
                     ret["result"] = False
@@ -146,7 +145,9 @@ def alias_absent(name, index, hosts=None, profile=None):
     ret = {"name": name, "changes": {}, "result": True, "comment": ""}
 
     try:
-        alias = __salt__["elasticsearch.alias_get"](aliases=name, indices=index, hosts=hosts, profile=profile)
+        alias = __salt__["elasticsearch.alias_get"](
+            aliases=name, indices=index, hosts=hosts, profile=profile
+        )
         if alias and alias.get(index, {}).get("aliases", {}).get(name, None) is not None:
             if __opts__["test"]:
                 ret["comment"] = f"Alias {name} for index {index} will be removed"
@@ -160,7 +161,9 @@ def alias_absent(name, index, hosts=None, profile=None):
                     ret["comment"] = f"Successfully removed alias {name} for index {index}"
                     ret["changes"]["old"] = alias.get(index, {}).get("aliases", {}).get(name, {})
                 else:
-                    ret["comment"] = f"Failed to remove alias {name} for index {index} for unknown reasons"
+                    ret["comment"] = (
+                        f"Failed to remove alias {name} for index {index} for unknown reasons"
+                    )
         else:
             ret["comment"] = f"Alias {name} for index {index} is already absent"
     except Exception as err:  # pylint: disable=broad-except
@@ -211,23 +214,27 @@ def alias_present(name, indices, hosts=None, profile=None, **kwargs):
     filter_definition = kwargs.get("filter_")
 
     try:
-        alias = __salt__["elasticsearch.alias_get"](aliases=name, indices=indices, hosts=hosts, profile=profile)
+        alias = __salt__["elasticsearch.alias_get"](
+            aliases=name, indices=indices, hosts=hosts, profile=profile
+        )
         old = {}
         if alias:
             old = alias.get(indices, {}).get("aliases", {}).get(name, {})
         if filter_definition is None:
             filter_definition = {}
 
-        ret["changes"] = __utils__["dictdiffer.deep_diff"](old, filter_definition)
+        ret["changes"] = salt.utils.dictdiffer.deep_diff(old, filter_definition)
 
         if ret["changes"] or not filter_definition:
             if __opts__["test"]:
                 if not old:
-                    ret["comment"] = f"Alias {name} for index {indices} does not exist and will be created"
+                    ret["comment"] = (
+                        f"Alias {name} for index {indices} does not exist and will be created"
+                    )
                 else:
-                    ret[
-                        "comment"
-                    ] = f"Alias {name} for index {indices} exists with wrong configuration and will be overridden"
+                    ret["comment"] = (
+                        f"Alias {name} for index {indices} exists with wrong configuration and will be overridden"
+                    )
 
                 ret["result"] = None
             else:
@@ -262,14 +269,18 @@ def index_template_absent(name, hosts=None, profile=None):
     ret = {"name": name, "changes": {}, "result": True, "comment": ""}
 
     try:
-        index_template = __salt__["elasticsearch.index_template_get"](name=name, hosts=hosts, profile=profile)
+        index_template = __salt__["elasticsearch.index_template_get"](
+            name=name, hosts=hosts, profile=profile
+        )
         if index_template and name in index_template:
             if __opts__["test"]:
                 ret["comment"] = f"Index template {name} will be removed"
                 ret["changes"]["old"] = index_template[name]
                 ret["result"] = None
             else:
-                ret["result"] = __salt__["elasticsearch.index_template_delete"](name=name, hosts=hosts, profile=profile)
+                ret["result"] = __salt__["elasticsearch.index_template_delete"](
+                    name=name, hosts=hosts, profile=profile
+                )
                 if ret["result"]:
                     ret["comment"] = f"Successfully removed index template {name}"
                     ret["changes"]["old"] = index_template[name]
@@ -343,14 +354,18 @@ def index_template_present(name, hosts=None, profile=None, check_definition=Fals
     ret = {"name": name, "changes": {}, "result": True, "comment": ""}
 
     try:
-        index_template_exists = __salt__["elasticsearch.index_template_exists"](name=name, hosts=hosts, profile=profile)
+        index_template_exists = __salt__["elasticsearch.index_template_exists"](
+            name=name, hosts=hosts, profile=profile
+        )
         settings = kwargs.get("settings")
         mappings = kwargs.get("mappings")
         aliases = kwargs.get("aliases")
         if not index_template_exists:
             if __opts__["test"]:
                 ret["comment"] = f"Index template {name} does not exist and will be created"
-                ret["changes"] = {"new": {"settings": settings, "mappings": mappings, "aliases": aliases}}
+                ret["changes"] = {
+                    "new": {"settings": settings, "mappings": mappings, "aliases": aliases}
+                }
                 ret["result"] = None
             else:
                 output = __salt__["elasticsearch.index_template_create"](
@@ -359,9 +374,9 @@ def index_template_present(name, hosts=None, profile=None, check_definition=Fals
                 if output:
                     ret["comment"] = f"Successfully created index template {name}"
                     ret["changes"] = {
-                        "new": __salt__["elasticsearch.index_template_get"](name=name, hosts=hosts, profile=profile)[
-                            name
-                        ]
+                        "new": __salt__["elasticsearch.index_template_get"](
+                            name=name, hosts=hosts, profile=profile
+                        )[name]
                     }
                 else:
                     ret["result"] = False
@@ -380,14 +395,16 @@ def index_template_present(name, hosts=None, profile=None, check_definition=Fals
                 for key in ("mappings", "aliases", "settings"):
                     if current_template[key] == {} and key not in definition_parsed:
                         del current_template[key]
-                diff = __utils__["dictdiffer.deep_diff"](current_template, definition_parsed)
+                diff = salt.utils.dictdiffer.deep_diff(current_template, definition_parsed)
                 if len(diff) != 0:
                     if __opts__["test"]:
                         ret["comment"] = f"Index template {name} exist but need to be updated"
                         ret["changes"] = diff
                         ret["result"] = None
                     else:
-                        output = __salt__["elasticsearch.index_template_create"](name=name, **kwargs)
+                        output = __salt__["elasticsearch.index_template_create"](
+                            name=name, **kwargs
+                        )
                         if output:
                             ret["comment"] = f"Successfully updated index template {name}"
                             ret["changes"] = diff
@@ -423,7 +440,9 @@ def pipeline_absent(name, hosts=None, profile=None):
                 ret["changes"]["old"] = pipeline[name]
                 ret["result"] = None
             else:
-                ret["result"] = __salt__["elasticsearch.pipeline_delete"](id_=name, hosts=hosts, profile=profile)
+                ret["result"] = __salt__["elasticsearch.pipeline_delete"](
+                    id_=name, hosts=hosts, profile=profile
+                )
                 if ret["result"]:
                     ret["comment"] = f"Successfully removed pipeline {name}"
                     ret["changes"]["old"] = pipeline[name]
@@ -500,18 +519,22 @@ def pipeline_present(name, hosts=None, profile=None, **kwargs):
         old = {}
         if pipeline and name in pipeline:
             old = pipeline[name]
-        ret["changes"] = __utils__["dictdiffer.deep_diff"](old, definition)
+        ret["changes"] = salt.utils.dictdiffer.deep_diff(old, definition)
 
         if ret["changes"] or (not description or not processors):
             if __opts__["test"]:
                 if not pipeline:
                     ret["comment"] = f"Pipeline {name} does not exist and will be created"
                 else:
-                    ret["comment"] = f"Pipeline {name} exists with wrong configuration and will be overridden"
+                    ret["comment"] = (
+                        f"Pipeline {name} exists with wrong configuration and will be overridden"
+                    )
 
                 ret["result"] = None
             else:
-                output = __salt__["elasticsearch.pipeline_create"](id_=name, hosts=hosts, profile=profile, **kwargs)
+                output = __salt__["elasticsearch.pipeline_create"](
+                    id_=name, hosts=hosts, profile=profile, **kwargs
+                )
                 if output:
                     if not pipeline:
                         ret["comment"] = f"Successfully created pipeline {name}"
@@ -547,7 +570,9 @@ def script_absent(name, hosts=None, profile=None):
                 ret["changes"]["old"] = salt.utils.json.loads(template["template"])
                 ret["result"] = None
             else:
-                ret["result"] = __salt__["elasticsearch.script_delete"](id_=name, hosts=hosts, profile=profile)
+                ret["result"] = __salt__["elasticsearch.script_delete"](
+                    id_=name, hosts=hosts, profile=profile
+                )
                 if ret["result"]:
                     ret["comment"] = f"Successfully removed search template {name}"
                     ret["changes"]["old"] = salt.utils.json.loads(template["template"])
@@ -591,20 +616,22 @@ def script_present(name, hosts=None, profile=None, **kwargs):
         if template:
             old = salt.utils.json.loads(template["template"])
 
-        ret["changes"] = __utils__["dictdiffer.deep_diff"](old, script)
+        ret["changes"] = salt.utils.dictdiffer.deep_diff(old, script)
 
         if ret["changes"] or not script:
             if __opts__["test"]:
                 if not template:
                     ret["comment"] = f"Search template {name} does not exist and will be created"
                 else:
-                    ret[
-                        "comment"
-                    ] = f"Search template {name} exists with wrong configuration and will be overridden"
+                    ret["comment"] = (
+                        f"Search template {name} exists with wrong configuration and will be overridden"
+                    )
 
                 ret["result"] = None
             else:
-                output = __salt__["elasticsearch.script_create"](id_=name, hosts=hosts, profile=profile, **kwargs)
+                output = __salt__["elasticsearch.script_create"](
+                    id_=name, hosts=hosts, profile=profile, **kwargs
+                )
                 if output:
                     if not template:
                         ret["comment"] = f"Successfully created search template {name}"

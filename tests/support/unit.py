@@ -18,23 +18,24 @@
 
     .. _`unittest2`: https://pypi.python.org/pypi/unittest2
 """
-# pylint: disable=unused-import,blacklisted-module,deprecated-method
+
+# pylint: disable=unused-import,deprecated-method
 import inspect
 import logging
 import os
 import sys
 import types
-from unittest import expectedFailure
-from unittest import skip
-from unittest import skipIf
 from unittest import TestCase as _TestCase
 from unittest import TestLoader as _TestLoader
 from unittest import TestResult
 from unittest import TestSuite as _TestSuite
 from unittest import TextTestResult as _TextTestResult
 from unittest import TextTestRunner as _TextTestRunner
-from unittest.case import _id
+from unittest import expectedFailure
+from unittest import skip
+from unittest import skipIf
 from unittest.case import SkipTest
+from unittest.case import _id
 
 try:
     import psutil
@@ -66,10 +67,7 @@ class TestSuite(_TestSuite):
     def _handleClassSetUp(self, test, result):
         previousClass = getattr(result, "_previousTestClass", None)
         currentClass = test.__class__
-        if (
-            currentClass == previousClass
-            or getattr(currentClass, "setUpClass", None) is None
-        ):
+        if currentClass == previousClass or getattr(currentClass, "setUpClass", None) is None:
             return super()._handleClassSetUp(test, result)
 
         # Store a reference to all class attributes before running the setUpClass method
@@ -89,9 +87,7 @@ class TestSuite(_TestSuite):
             return
         # See if the previous class attributes have been cleaned
         if previousClass and getattr(previousClass, "tearDownClass", None):
-            prerun_class_attributes = getattr(
-                previousClass, "_prerun_class_attributes", None
-            )
+            prerun_class_attributes = getattr(previousClass, "_prerun_class_attributes", None)
             if prerun_class_attributes is not None:
                 previousClass._prerun_class_attributes = None
                 del previousClass._prerun_class_attributes
@@ -159,9 +155,8 @@ class TestLoader(_TestLoader):
 
 class TestCase(_TestCase):
 
-    # pylint: disable=expected-an-indented-block-comment,too-many-leading-hastag-for-block-comment
-    ##   Commented out because it may be causing tests to hang
-    ##   at the end of the run
+    #    Commented out because it may be causing tests to hang
+    #    at the end of the run
     #
     #    _cwd = os.getcwd()
     #    _chdir_counter = 0
@@ -179,7 +174,6 @@ class TestCase(_TestCase):
     #            print('\nWARNING: A misbehaving test has modified the working directory!\nThe test suite has reset the working directory '
     #                    'on tearDown() to {0}\n'.format(cls._cwd))
     #            cls._chdir_counter += 1
-    # pylint: enable=expected-an-indented-block-comment,too-many-leading-hastag-for-block-comment
 
     def run(self, result=None):
         self._prerun_instance_attributes = dir(self)
@@ -226,7 +220,7 @@ class TestCase(_TestCase):
                             found_zombies += 1
                 except Exception:  # pylint: disable=broad-except
                     pass
-                proc_info += "|Z:{}".format(found_zombies)
+                proc_info += f"|Z:{found_zombies}"
             proc_info += "] {short_desc}".format(short_desc=desc if desc else "")
             return proc_info
         else:

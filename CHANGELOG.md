@@ -1,4 +1,6 @@
+The changelog format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+This project uses [Semantic Versioning](https://semver.org/) - MAJOR.MINOR.PATCH
 
 # Changelog
 
@@ -7,7 +9,7 @@
 
 ### Added
 
-- Fixed towncrier config and changelog to release [#0](https://github.com/salt-extensions/saltext-elasticsearch/issues/0)
+- Fixed towncrier config and changelog to release [#6](https://github.com/salt-extensions/saltext-elasticsearch/pull/6)
 
 ## [1.1.1](https://github.com/cesan3/salt-ext-elasticsearch/compare/1.1.0...1.1.1) - 2023-11-17
 - fix: pass correct id attribute name by @cesan3 in https://github.com/cesan3/salt-ext-elasticsearch/pull/20

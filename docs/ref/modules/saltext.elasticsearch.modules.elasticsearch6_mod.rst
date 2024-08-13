@@ -1,6 +1,5 @@
-
-saltext.elasticsearch.modules.elasticsearch6_mod
-================================================
+``elasticsearch``
+=================
 
 .. automodule:: saltext.elasticsearch.modules.elasticsearch6_mod
     :members:

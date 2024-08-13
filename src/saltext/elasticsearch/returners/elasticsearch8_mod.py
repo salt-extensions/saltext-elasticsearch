@@ -93,6 +93,7 @@ Minion configuration:
           - test.ping
           - saltutil.find_job
 """
+
 import datetime
 import logging
 import uuid
@@ -123,6 +124,7 @@ STATE_FUNCTIONS = {
     "state.sls": "state_apply",
 }
 
+
 def __virtual__():
     if not HAS_ELASTICSEARCH:
         return (
@@ -130,12 +132,10 @@ def __virtual__():
             "Cannot load module elasticsearch: elasticsearch librarielastic not found",
         )
     if ES_MAJOR_VERSION < 8:
-        return (
-            False,
-            "Cannot load the module, elasticserach version is not 8+"
-        )
+        return (False, "Cannot load the module, elasticserach version is not 8+")
 
     return __virtualname__
+
 
 def _get_options(ret=None):
     """
@@ -196,8 +196,8 @@ def _ensure_index(index):
                 "number_of_replicas": options["number_of_replicas"],
             }
         }
-        __salt__["elasticsearch.index_create"]("{}-v1".format(index), index_definition)
-        __salt__["elasticsearch.alias_create"]("{}-v1".format(index), index)
+        __salt__["elasticsearch.index_create"](f"{index}-v1", index_definition)
+        __salt__["elasticsearch.alias_create"](f"{index}-v1", index)
 
 
 def _convert_keys(data):
@@ -249,9 +249,9 @@ def returner(ret):
 
     # Build the index name
     if options["states_single_index"] and job_fun in STATE_FUNCTIONS:
-        index = "salt-{}".format(STATE_FUNCTIONS[job_fun])
+        index = f"salt-{STATE_FUNCTIONS[job_fun]}"
     else:
-        index = "salt-{}".format(job_fun_escaped)
+        index = f"salt-{job_fun_escaped}"
 
     if options["index_date"]:
         index = "{}-{}".format(index, datetime.date.today().strftime("%Y.%m.%d"))
@@ -273,7 +273,7 @@ def returner(ret):
         # index to be '<index>-ordered' so as not to clash with the unsorted
         # index data format
         if options["states_order_output"] and isinstance(ret["return"], dict):
-            index = "{}-ordered".format(index)
+            index = f"{index}-ordered"
             max_chars = len(str(len(ret["return"])))
 
             for uid, data in ret["return"].items():
@@ -283,9 +283,7 @@ def returner(ret):
 
                 # Store the function being called as it's a useful key to search
                 decoded_uid = uid.split("_|-")
-                ret["return"][uid]["_func"] = "{}.{}".format(
-                    decoded_uid[0], decoded_uid[-1]
-                )
+                ret["return"][uid]["_func"] = f"{decoded_uid[0]}.{decoded_uid[-1]}"
 
                 # Prefix the key with the run order so it can be sorted
                 new_uid = "{}_|-{}".format(
@@ -411,9 +409,7 @@ def get_load(jid):
     index = options["master_job_cache_index"]
     doc_type = options["master_job_cache_doc_type"]
 
-    data = __salt__["elasticsearch.document_get"](
-        index=index, id=jid
-    )
+    data = __salt__["elasticsearch.document_get"](index=index, id=jid)
     if data:
         return salt.utils.json.loads(data)
     return {}

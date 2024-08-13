@@ -9,7 +9,7 @@ Module to provide Elasticsearch compatibility to Salt
 
 :codeauthor: Cesar Sanchez <cesan3@gmail.com>
 
-:depends: elasticsearch-py <http://elasticsearch-py.readthedocs.org/en/latest/>
+:depends: elasticsearch-py <https://elasticsearch-py.readthedocs.io/en/latest/>
 
 :configuration: This module accepts connection configuration details either as
                 parameters or as configuration settings in /etc/salt/minion on the relevant
@@ -51,6 +51,7 @@ overwrite options passed into pillar.
 
 Some functionality might be limited by elasticsearch-py and Elasticsearch server versions.
 """
+
 # pylint: disable=too-many-lines
 import logging
 import re
@@ -84,10 +85,7 @@ def __virtual__():
             "Cannot load module elasticsearch: elasticsearch librarielastic not found",
         )
     if ES_MAJOR_VERSION < 8:
-        return (
-            False,
-            "Cannot load the module, elasticserach version is not 8+"
-        )
+        return (False, "Cannot load the module, elasticserach version is not 8+")
 
     return __virtualname__
 
@@ -102,6 +100,7 @@ def _get_instance(hosts=None, profile=None):
     verify_certs = True
     http_auth = None
     timeout = 10
+    _profile = None
 
     if profile is None:
         profile = "elasticsearch"
@@ -216,7 +215,9 @@ def info(
     """
     elastic = _get_instance(hosts=hosts, profile=profile)
     try:
-        return elastic.info(error_trace=error_trace, filter_path=filter_path, human=human, pretty=pretty).body
+        return elastic.info(
+            error_trace=error_trace, filter_path=filter_path, human=human, pretty=pretty
+        ).body
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
             f"Cannot retrieve server information, server returned errors {err.errors}"
@@ -624,7 +625,7 @@ def cluster_put_settings(
 
     body
         The settings to be updated. Can be either 'transient' or 'persistent' (survives cluster restart)
-        http://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-update-settings.html
+        https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-update-settings.html
 
     flat_settings
         Return settings in flat format.
@@ -637,7 +638,9 @@ def cluster_put_settings(
       salt myminion elasticsearch.cluster_put_settings '{"transient": {"indices.recovery.max_bytes_per_sec": "50mb"}}'
     """
     if body is None and persistent is None and transient is None:
-        message = "You must provide a body with settings or provide the persistent or transient data"
+        message = (
+            "You must provide a body with settings or provide the persistent or transient data"
+        )
         raise SaltInvocationError(message)
     elastic = _get_instance(hosts=hosts, profile=profile)
 
@@ -655,16 +658,16 @@ def cluster_put_settings(
             ).body
         else:
             return elastic.cluster.put_settings(
-            flat_settings=flat_settings,
-            error_trace=error_trace,
-            filter_path=filter_path,
-            human=human,
-            master_timeout=master_timeout,
-            pretty=pretty,
-            timeout=timeout,
-            transient=transient,
-            persistent=persistent,
-        ).body
+                flat_settings=flat_settings,
+                error_trace=error_trace,
+                filter_path=filter_path,
+                human=human,
+                master_timeout=master_timeout,
+                pretty=pretty,
+                timeout=timeout,
+                transient=transient,
+                persistent=persistent,
+            ).body
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
             f"Cannot update cluster settings, server returned errors {err.errors}"
@@ -1748,7 +1751,7 @@ def index_get_settings(
     .. versionadded:: 3000
 
     Check for the existence of an index and if it exists, return its settings
-    http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-settings.html
+    https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-settings.html
 
     index
         (Optional, string) A comma-separated list of index names;
@@ -3678,6 +3681,4 @@ def flush(
             wait_if_ongoing=wait_if_ongoing,
         ).body
     except elasticsearch.TransportError as err:
-        raise CommandExecutionError(
-            f"Cannot flush, server returned errors {err.errors}"
-        ) from err
+        raise CommandExecutionError(f"Cannot flush, server returned errors {err.errors}") from err

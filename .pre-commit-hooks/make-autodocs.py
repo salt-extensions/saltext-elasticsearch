@@ -1,79 +1,118 @@
-import sys
-from enum import IntEnum
+import ast
+import os.path
+import subprocess
 from pathlib import Path
 
+repo_path = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip())
+src_dir = repo_path / "src" / "saltext" / "elasticsearch"
+doc_dir = repo_path / "docs"
 
-class Result(IntEnum):
-    success = 0
-    fail = 1
+docs_by_kind = {}
+changed_something = False
 
 
-result = Result.fail
+def _find_virtualname(path):
+    tree = ast.parse(path.read_text())
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "__virtualname__":
+                    if isinstance(node.value, ast.Str):
+                        virtualname = node.value.s
+                        break
+            else:
+                continue
+            break
+    else:
+        virtualname = path.with_suffix("").name
+    return virtualname
 
-all_states = []
-all_mods = []
-docs_path = Path("docs")
-ref_path = docs_path / "ref"
-mod_path = ref_path / "modules"
-state_path = ref_path / "states"
 
-for path in Path("src").glob("**/*.py"):
-    if path.parent.name in ("states", "modules"):
-        kind = path.parent.name
-        import_path = ".".join(path.with_suffix("").parts[1:])
-        if kind == "states":
-            all_states.append(import_path)
-            rst_path = state_path / (import_path + ".rst")
-        elif kind == "modules":
-            all_mods.append(import_path)
-            rst_path = mod_path / (import_path + ".rst")
+def write_module(rst_path, path, use_virtualname=True):
+    if use_virtualname:
+        virtualname = "``" + _find_virtualname(path) + "``"
+    else:
+        virtualname = make_import_path(path)
+    module_contents = f"""\
+{virtualname}
+{'='*len(virtualname)}
 
-        rst_path.parent.mkdir(parents=True, exist_ok=True)
-        rst_path.write_text(
-            f"""
-{import_path}
-{'='*len(import_path)}
-
-.. automodule:: {import_path}
+.. automodule:: {make_import_path(path)}
     :members:
 """
+    if not rst_path.exists() or rst_path.read_text() != module_contents:
+        print(rst_path)
+        rst_path.write_text(module_contents)
+        return True
+    return False
+
+
+def write_index(index_rst, import_paths, kind):
+    if kind == "utils":
+        header_text = "Utilities"
+        common_path = os.path.commonpath(tuple(x.replace(".", "/") for x in import_paths)).replace(
+            "/", "."
         )
+        if any(x == common_path for x in import_paths):
+            common_path = common_path[: common_path.rfind(".")]
+    else:
+        header_text = (
+            "execution modules" if kind.lower() == "modules" else kind.rstrip("s") + " modules"
+        )
+        common_path = import_paths[0][: import_paths[0].rfind(".")]
+    header = f"{'_'*len(header_text)}\n{header_text.title()}\n{'_'*len(header_text)}"
+    index_contents = f"""\
+.. all-saltext.elasticsearch.{kind}:
 
-        # print(import_path)
-        # print(kind, path)
+{header}
 
-states_rst = state_path / "all.rst"
-states_rst.parent.mkdir(parents=True, exist_ok=True)
-mods_rst = mod_path / "all.rst"
-mods_rst.parent.mkdir(parents=True, exist_ok=True)
-
-
-mods_rst.write_text(
-    f"""
-.. all-saltext.vmware.modules:
-
------------------
-Execution Modules
------------------
+.. currentmodule:: {common_path}
 
 .. autosummary::
     :toctree:
 
-{chr(10).join(sorted('    '+mod for mod in all_mods))}
+{chr(10).join(sorted('    '+p[len(common_path)+1:] for p in import_paths))}
 """
-)
-states_rst.write_text(
-    f"""
-.. all-saltext.vmware.states:
+    if not index_rst.exists() or index_rst.read_text() != index_contents:
+        print(index_rst)
+        index_rst.write_text(index_contents)
+        return True
+    return False
 
--------------
-State Modules
--------------
 
-.. autosummary::
-    :toctree:
+def make_import_path(path):
+    if path.name == "__init__.py":
+        path = path.parent
+    return ".".join(path.relative_to(repo_path / "src").with_suffix("").parts)
 
-{chr(10).join(sorted('    '+state for state in all_states))}
-"""
-)
-# exit(result)
+
+for path in src_dir.glob("*/*.py"):
+    if path.name != "__init__.py":
+        kind = path.parent.name
+        if kind != "utils":
+            docs_by_kind.setdefault(kind, set()).add(path)
+
+# Utils can have subdirectories, treat them separately
+for path in (src_dir / "utils").rglob("*.py"):
+    if path.name == "__init__.py" and not path.read_text():
+        continue
+    docs_by_kind.setdefault("utils", set()).add(path)
+
+for kind in docs_by_kind:
+    kind_path = doc_dir / "ref" / kind
+    index_rst = kind_path / "index.rst"
+    import_paths = []
+    for path in sorted(docs_by_kind[kind]):
+        import_path = make_import_path(path)
+        import_paths.append(import_path)
+        rst_path = kind_path / (import_path + ".rst")
+        rst_path.parent.mkdir(parents=True, exist_ok=True)
+        change = write_module(rst_path, path, use_virtualname=kind != "utils")
+        changed_something = changed_something or change
+
+    write_index(index_rst, import_paths, kind)
+
+
+# Ensure pre-commit realizes we did something
+if changed_something:
+    exit(2)
