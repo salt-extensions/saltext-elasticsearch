@@ -230,7 +230,7 @@ def returner(ret):
     job_fun_escaped = job_fun.replace(".", "_")
     job_id = ret["jid"]
     job_retcode = ret.get("retcode", 1)
-    job_success = True if not job_retcode else False
+    job_success = bool(not job_retcode)
 
     options = _get_options(ret)
 
@@ -364,7 +364,7 @@ def event_return(events):
     for event in events:
         data = {"tag": event.get("tag", ""), "data": event.get("data", "")}
 
-    ret = __salt__["elasticsearch.document_create"](
+    __salt__["elasticsearch.document_create"](
         index=index,
         doc_type=doc_type,
         id=uuid.uuid4(),
@@ -379,6 +379,7 @@ def prep_jid(nocache=False, passed_jid=None):  # pylint: disable=unused-argument
     return passed_jid if passed_jid is not None else salt.utils.jid.gen_jid(__opts__)
 
 
+# pylint: disable=unused-argument
 def save_load(jid, load, minions=None):
     """
     Save the load to the specified jid id
@@ -397,7 +398,7 @@ def save_load(jid, load, minions=None):
         "load": load,
     }
 
-    ret = __salt__["elasticsearch.document_create"](
+    __salt__["elasticsearch.document_create"](
         index=index, doc_type=doc_type, id=jid, body=salt.utils.json.dumps(data)
     )
 

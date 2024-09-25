@@ -501,7 +501,7 @@ class MockElasticSnapshot:
         """
         Mock of snapshot restore method
         """
-        from collections import namedtuple
+        from collections import namedtuple  # pylint: disable=import-outside-toplevel
 
         _api_meta = namedtuple("api_error", "status")
         _meta = _api_meta(0)

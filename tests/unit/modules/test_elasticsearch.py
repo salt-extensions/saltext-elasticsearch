@@ -3,9 +3,9 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
-import salt.modules.cp as cp
 from salt.exceptions import CommandExecutionError
 from salt.exceptions import SaltInvocationError
+from salt.modules import cp
 
 from tests.support.unit import TestCase
 
