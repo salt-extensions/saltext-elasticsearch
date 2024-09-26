@@ -227,7 +227,7 @@ def returner(ret):
     job_fun_escaped = job_fun.replace(".", "_")
     job_id = ret["jid"]
     job_retcode = ret.get("retcode", 1)
-    job_success = True if not job_retcode else False
+    job_success = bool(not job_retcode)
 
     options = _get_options(ret)
 
@@ -351,7 +351,6 @@ def event_return(events):
     options = _get_options()
 
     index = options["master_event_index"]
-    doc_type = options["master_event_doc_type"]
 
     if options["index_date"]:
         index = "{}-{}".format(index, datetime.date.today().strftime("%Y.%m.%d"))
@@ -361,7 +360,7 @@ def event_return(events):
     for event in events:
         data = {"tag": event.get("tag", ""), "data": event.get("data", "")}
 
-    ret = __salt__["elasticsearch.document_create"](
+    __salt__["elasticsearch.document_create"](
         index=index,
         id_=uuid.uuid4(),
         document=salt.utils.json.dumps(data),
@@ -375,6 +374,7 @@ def prep_jid(nocache=False, passed_jid=None):  # pylint: disable=unused-argument
     return passed_jid if passed_jid is not None else salt.utils.jid.gen_jid(__opts__)
 
 
+# pylint: disable=unused-argument
 def save_load(jid, load, minions=None):
     """
     Save the load to the specified jid id
@@ -384,7 +384,6 @@ def save_load(jid, load, minions=None):
     options = _get_options()
 
     index = options["master_job_cache_index"]
-    doc_type = options["master_job_cache_doc_type"]
 
     _ensure_index(index)
 
@@ -393,7 +392,7 @@ def save_load(jid, load, minions=None):
         "load": load,
     }
 
-    ret = __salt__["elasticsearch.document_create"](
+    __salt__["elasticsearch.document_create"](
         index=index, id_=jid, document=salt.utils.json.dumps(data)
     )
 
@@ -407,7 +406,6 @@ def get_load(jid):
     options = _get_options()
 
     index = options["master_job_cache_index"]
-    doc_type = options["master_job_cache_doc_type"]
 
     data = __salt__["elasticsearch.document_get"](index=index, id=jid)
     if data:

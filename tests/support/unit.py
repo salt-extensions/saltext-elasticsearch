@@ -63,6 +63,7 @@ eu mauris sit amet convallis. Morbi vulputate vel odio non laoreet. Nullam in su
 Sed quis posuere urna."""
 
 
+# pylint: disable=invalid-name
 class TestSuite(_TestSuite):
     def _handleClassSetUp(self, test, result):
         previousClass = getattr(result, "_previousTestClass", None)

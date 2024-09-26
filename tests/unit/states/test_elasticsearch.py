@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
-import salt.modules.cp as cp
+from salt.modules import cp
 
 import saltext.elasticsearch.states.elasticsearch_mod as elasticsearch_state
 from tests.support.unit import TestCase
