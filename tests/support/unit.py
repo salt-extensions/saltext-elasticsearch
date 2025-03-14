@@ -1,22 +1,22 @@
 """
-    :codeauthor: Pedro Algarvio (pedro@algarvio.me)
+:codeauthor: Pedro Algarvio (pedro@algarvio.me)
 
 
-    ============================
-    Unittest Compatibility Layer
-    ============================
+============================
+Unittest Compatibility Layer
+============================
 
-    Compatibility layer to use :mod:`unittest <python2:unittest>` under Python
-    2.7 or `unittest2`_ under Python 2.6 without having to worry about which is
-    in use.
+Compatibility layer to use :mod:`unittest <python2:unittest>` under Python
+2.7 or `unittest2`_ under Python 2.6 without having to worry about which is
+in use.
 
-    .. attention::
+.. attention::
 
-        Please refer to Python's :mod:`unittest <python2:unittest>`
-        documentation as the ultimate source of information, this is just a
-        compatibility layer.
+    Please refer to Python's :mod:`unittest <python2:unittest>`
+    documentation as the ultimate source of information, this is just a
+    compatibility layer.
 
-    .. _`unittest2`: https://pypi.python.org/pypi/unittest2
+.. _`unittest2`: https://pypi.python.org/pypi/unittest2
 """
 
 # pylint: disable=unused-import,deprecated-method
