@@ -1,5 +1,5 @@
 """
-    :codeauthor: Cesar Sanchez <cesan3@gmail.com>
+:codeauthor: Cesar Sanchez <cesan3@gmail.com>
 """
 
 from elasticsearch import ApiError
