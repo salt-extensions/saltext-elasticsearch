@@ -1244,7 +1244,7 @@ def pipeline_create(id, body, hosts=None, profile=None):
     id
         Pipeline id
     body
-        Pipeline definition as specified in https://www.elastic.co/guide/en/elasticsearch/reference/master/pipeline.html
+        Pipeline definition as specified in https://www.elastic.co/guide/en/elasticsearch/reference/current/pipeline.html
 
     CLI Example:
 
@@ -1275,7 +1275,7 @@ def pipeline_simulate(id, body, verbose=False, hosts=None, profile=None):
     id
         Pipeline id
     body
-        Pipeline definition as specified in https://www.elastic.co/guide/en/elasticsearch/reference/master/pipeline.html
+        Pipeline definition as specified in https://www.elastic.co/guide/en/elasticsearch/reference/current/pipeline.html
     verbose
         Specify if the output should be more verbose
 

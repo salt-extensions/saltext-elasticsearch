@@ -493,7 +493,7 @@ def pipeline_present(name, hosts=None, profile=None, **kwargs):
         not use or validate pipeline version numbers.
     definition
         Required dict for creation parameters as per
-        https://www.elastic.co/guide/en/elasticsearch/reference/master/pipeline.html
+        https://www.elastic.co/guide/en/elasticsearch/reference/current/pipeline.html
 
     **Example:**
 
