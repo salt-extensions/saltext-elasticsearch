@@ -2413,7 +2413,7 @@ def geo_ip_stats(
 
     Returns statistical information about geoip databases
 
-    https://www.elastic.co/guide/en/elasticsearch/reference/master/geoip-stats-api.html
+    https://www.elastic.co/guide/en/elasticsearch/reference/current/geoip-stats-api.html
 
     CLI Example:
 
@@ -2449,7 +2449,7 @@ def processor_grok(
 
     Returns a list of built-in patterns
 
-    https://www.elastic.co/guide/en/elasticsearch/reference/master/grok-processor.html#grok-processor-rest-get
+    https://www.elastic.co/guide/en/elasticsearch/reference/current/grok-processor.html#grok-processor-rest-get
 
     CLI Example:
 
