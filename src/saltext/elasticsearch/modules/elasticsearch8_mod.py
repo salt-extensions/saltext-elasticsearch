@@ -129,8 +129,8 @@ def _get_instance(hosts=None, profile=None):
         _re = re.compile(r"(http[s]*://)(.*)")
         match = _re.match(hosts)
         if match:
-            (schema, hostport) = match.groups()
-            (host, port) = hostport.split(":")
+            schema, hostport = match.groups()
+            host, port = hostport.split(":")
             if port is None:
                 port = "9200"
             hosts = [f"{schema}{host}:{port}"]
