@@ -315,13 +315,13 @@ def returner(ret):
 
     # Build the payload
     class UTC(tzinfo):
-        def utcoffset(self, dt):
+        def utcoffset(self, _dt):
             return timedelta(0)
 
-        def tzname(self, dt):
+        def tzname(self, _dt):
             return "UTC"
 
-        def dst(self, dt):
+        def dst(self, _dt):
             return timedelta(0)
 
     utc = UTC()
