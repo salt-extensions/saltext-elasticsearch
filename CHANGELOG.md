@@ -4,6 +4,13 @@ This project uses [Semantic Versioning](https://semver.org/) - MAJOR.MINOR.PATCH
 
 # Changelog
 
+## 1.2.2 (2026-02-08)
+
+
+### Fixed
+
+- Fixed a crash in the elasticsearch9 returner when `states_order_output` is enabled (dict modified during iteration). Fixed `event_return()` to index each event individually instead of only the last one. Fixed `search()` in both elasticsearch8 and elasticsearch9 modules to parse JSON string `body` arguments before calling `.get()`. [#22](https://github.com/salt-extensions/saltext-elasticsearch/issues/22)
+
 ## 1.2.1 (2024-01-17)
 
 
