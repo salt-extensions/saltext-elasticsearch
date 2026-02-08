@@ -1,11 +1,11 @@
 """
 Salt execution module
 
-Elasticsearch - A distributed RESTful search and analytics server for Elasticsearch 8
+Elasticsearch - A distributed RESTful search and analytics server for Elasticsearch 9
 Module to provide Elasticsearch compatibility to Salt
-(compatible with Elasticsearch version 8+).  Copied from elasticsearch.py module and updated.
+(compatible with Elasticsearch version 9+).  Copied from elasticsearch8.py module and updated.
 
-.. versionadded:: 3005.1
+.. versionadded:: 1.3.0
 
 :codeauthor: Cesar Sanchez <cesan3@gmail.com>
 
@@ -78,15 +78,15 @@ __virtualname__ = "elasticsearch"
 
 def __virtual__():
     """
-    Only load if elasticsearch librarielastic exist and ES version is 8+.
+    Only load if elasticsearch librarielastic exist and ES version is 9+.
     """
     if not HAS_ELASTICSEARCH:
         return (
             False,
             "Cannot load module elasticsearch: elasticsearch librarielastic not found",
         )
-    if ES_MAJOR_VERSION < 8:
-        return (False, "Cannot load the module, elasticserach version is not 8+")
+    if ES_MAJOR_VERSION < 9:
+        return (False, "Cannot load the module, elasticserach version is not 9+")
 
     return __virtualname__
 
@@ -1841,6 +1841,1001 @@ def bulk(
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
             f"Cannot execute bulk operation, server returned errors {err.errors}"
+        ) from err
+
+
+def count(
+    index=None,
+    hosts=None,
+    profile=None,
+    body=None,
+    source=None,
+    query=None,
+    q=None,
+    allow_no_indices=None,
+    analyze_wildcard=None,
+    analyzer=None,
+    default_operator=None,
+    df=None,
+    error_trace=None,
+    expand_wildcards=None,
+    filter_path=None,
+    human=None,
+    ignore_throttled=None,
+    ignore_unavailable=None,
+    lenient=None,
+    min_score=None,
+    preference=None,
+    pretty=None,
+    routing=None,
+    terminate_after=None,
+):
+    """
+    .. versionadded:: 1.3.0
+
+    Get the count of documents matching a query
+
+    index
+        A comma-separated list of data streams, indices, and aliases to search.
+        Supports wildcards (*). Use _all or empty string to perform the operation on all indices.
+    body
+        Query definition using the Query DSL. Cannot be used with source.
+    source
+        URL of file specifying query definition. Cannot be used in combination with body.
+    query
+        Defines the search definition using the Query DSL
+    q
+        Query in the Lucene query string syntax
+    allow_no_indices
+        Whether to ignore if a wildcard indices expression resolves into no concrete indices
+    analyze_wildcard
+        Specify whether wildcard and prefix queries should be analyzed (default: false)
+    analyzer
+        The analyzer to use for the query string
+    default_operator
+        The default operator for query string query (AND or OR)
+    df
+        The field to use as default where no field prefix is given in the query string
+    expand_wildcards
+        Whether to expand wildcard expression to concrete indices that are open, closed or both
+    ignore_unavailable
+        Whether specified concrete indices should be ignored when unavailable (missing or closed)
+    lenient
+        Specify whether format-based query failures should be ignored
+    min_score
+        Minimum _score for matching documents. Documents with a lower score are not included in results.
+    preference
+        Specify the node or shard the operation should be performed on (default: random)
+    routing
+        A comma-separated list of specific routing values
+    terminate_after
+        The maximum number of documents to collect for each shard
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.count
+        salt myminion elasticsearch.count testindex
+        salt myminion elasticsearch.count testindex q='status:active'
+        salt myminion elasticsearch.count testindex query='{"match": {"field": "value"}}'
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    if source and body:
+        message = "Either body or source should be specified but not both."
+        raise SaltInvocationError(message)
+    if source:
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
+
+    try:
+        # Build query body from parameters if body not provided
+        query_body = {}
+        if body:
+            query_body = body
+        elif query is not None:
+            query_body["query"] = query
+
+        return elastic.count(
+            index=index,
+            allow_no_indices=allow_no_indices,
+            analyze_wildcard=analyze_wildcard,
+            analyzer=analyzer,
+            default_operator=default_operator,
+            df=df,
+            error_trace=error_trace,
+            expand_wildcards=expand_wildcards,
+            filter_path=filter_path,
+            human=human,
+            ignore_throttled=ignore_throttled,
+            ignore_unavailable=ignore_unavailable,
+            lenient=lenient,
+            min_score=min_score,
+            preference=preference,
+            pretty=pretty,
+            q=q,
+            query=query_body.get("query") if query_body else None,
+            routing=routing,
+            terminate_after=terminate_after,
+        ).body
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot execute count on index {index}, server returned errors {err.errors}"
+        ) from err
+
+
+def mget(
+    index=None,
+    hosts=None,
+    profile=None,
+    body=None,
+    source=None,
+    docs=None,
+    ids=None,
+    error_trace=None,
+    filter_path=None,
+    human=None,
+    preference=None,
+    pretty=None,
+    realtime=None,
+    refresh=None,
+    routing=None,
+    source_excludes=None,
+    source_includes=None,
+    stored_fields=None,
+):
+    """
+    .. versionadded:: 1.3.0
+
+    Get multiple documents by ID
+
+    index
+        Name of the index to retrieve documents from
+    body
+        Document identifiers and optional parameters. Cannot be used with source.
+    source
+        URL of file specifying document identifiers. Cannot be used in combination with body.
+    docs
+        The documents to retrieve (required if index not in URI)
+    ids
+        The document IDs to retrieve (allowed when index specified in URI)
+    preference
+        Specify the node or shard the operation should be performed on (default: random)
+    realtime
+        Specify whether to perform the operation in realtime or search mode
+    refresh
+        If true, refresh the relevant shards before retrieval to make changes visible
+    routing
+        Specific routing value
+    source_excludes
+        A comma-separated list of source fields to exclude from the response
+    source_includes
+        A comma-separated list of source fields to include in the response
+    stored_fields
+        A comma-separated list of stored fields to return in the response
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.mget testindex ids='["1", "2", "3"]'
+        salt myminion elasticsearch.mget docs='[{"_index": "test", "_id": "1"}, {"_index": "test2", "_id": "2"}]'
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    if source and body:
+        message = "Either body or source should be specified but not both."
+        raise SaltInvocationError(message)
+    if source:
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
+
+    try:
+        # Build mget body from parameters if body not provided
+        mget_body = {}
+        if body:
+            mget_body = body
+        else:
+            if docs is not None:
+                mget_body["docs"] = docs
+            if ids is not None:
+                mget_body["ids"] = ids
+
+        return elastic.mget(
+            index=index,
+            docs=mget_body.get("docs") if not ids else None,
+            ids=ids,
+            error_trace=error_trace,
+            filter_path=filter_path,
+            human=human,
+            preference=preference,
+            pretty=pretty,
+            realtime=realtime,
+            refresh=refresh,
+            routing=routing,
+            source_excludes=source_excludes,
+            source_includes=source_includes,
+            stored_fields=stored_fields,
+        ).body
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot execute mget, server returned errors {err.errors}"
+        ) from err
+
+
+# pylint: disable=too-many-arguments
+def delete_by_query(
+    index,
+    hosts=None,
+    profile=None,
+    body=None,
+    source=None,
+    query=None,
+    q=None,
+    allow_no_indices=None,
+    analyze_wildcard=None,
+    analyzer=None,
+    conflicts=None,
+    default_operator=None,
+    df=None,
+    error_trace=None,
+    expand_wildcards=None,
+    filter_path=None,
+    from_=None,
+    human=None,
+    ignore_unavailable=None,
+    lenient=None,
+    max_docs=None,
+    preference=None,
+    pretty=None,
+    refresh=None,
+    request_cache=None,
+    requests_per_second=None,
+    routing=None,
+    scroll=None,
+    scroll_size=None,
+    search_timeout=None,
+    search_type=None,
+    slices=None,
+    sort=None,
+    stats=None,
+    terminate_after=None,
+    timeout=None,
+    version=None,
+    wait_for_active_shards=None,
+    wait_for_completion=None,
+):
+    """
+    .. versionadded:: 1.3.0
+
+    Delete documents matching a query
+
+    index
+        A comma-separated list of data streams, indices, and aliases to search.
+        Supports wildcards (*).
+    body
+        Query definition using the Query DSL. Cannot be used with source.
+    source
+        URL of file specifying query definition. Cannot be used in combination with body.
+    query
+        Query in the request body to identify documents to delete
+    q
+        Query in the Lucene query string syntax
+    allow_no_indices
+        Whether to ignore if a wildcard indices expression resolves into no concrete indices
+    analyzer
+        The analyzer to use for the query string
+    conflicts
+        What to do when the operation encounters version conflicts (abort or proceed)
+    default_operator
+        The default operator for query string query (AND or OR)
+    df
+        The field to use as default where no field prefix is given in the query string
+    expand_wildcards
+        Whether to expand wildcard expression to concrete indices that are open, closed or both
+    ignore_unavailable
+        Whether specified concrete indices should be ignored when unavailable
+    max_docs
+        Maximum number of documents to process (default: all documents)
+    preference
+        Specify the node or shard the operation should be performed on
+    refresh
+        If true, refresh the affected shards after performing the operation
+    requests_per_second
+        The throttle for this request in sub-requests per second (-1 means no throttle)
+    routing
+        A comma-separated list of specific routing values
+    scroll
+        Specify how long a consistent view of the index should be maintained for scrolled search
+    scroll_size
+        Size of the scroll request (default: 100)
+    search_timeout
+        Explicit timeout for each search request
+    slices
+        The number of slices this task should be divided into (default: 1, auto calculates)
+    timeout
+        Time each individual bulk request should wait for shards that are unavailable
+    wait_for_active_shards
+        Sets the number of shard copies that must be active before proceeding
+    wait_for_completion
+        If false, return task ID for async execution (default: true)
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.delete_by_query testindex query='{"match": {"status": "old"}}'
+        salt myminion elasticsearch.delete_by_query testindex q='status:old'
+        salt myminion elasticsearch.delete_by_query testindex query='{"range": {"date": {"lt": "now-30d"}}}' slices=auto
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    if source and body:
+        message = "Either body or source should be specified but not both."
+        raise SaltInvocationError(message)
+    if source:
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
+
+    try:
+        # Build query body from parameters if body not provided
+        query_body = {}
+        if body:
+            query_body = body
+        elif query is not None:
+            query_body["query"] = query
+
+        return elastic.delete_by_query(
+            index=index,
+            allow_no_indices=allow_no_indices,
+            analyze_wildcard=analyze_wildcard,
+            analyzer=analyzer,
+            conflicts=conflicts,
+            default_operator=default_operator,
+            df=df,
+            error_trace=error_trace,
+            expand_wildcards=expand_wildcards,
+            filter_path=filter_path,
+            from_=from_,
+            human=human,
+            ignore_unavailable=ignore_unavailable,
+            lenient=lenient,
+            max_docs=max_docs,
+            preference=preference,
+            pretty=pretty,
+            q=q,
+            query=query_body.get("query") if query_body else None,
+            refresh=refresh,
+            request_cache=request_cache,
+            requests_per_second=requests_per_second,
+            routing=routing,
+            scroll=scroll,
+            scroll_size=scroll_size,
+            search_timeout=search_timeout,
+            search_type=search_type,
+            slices=slices,
+            sort=sort,
+            stats=stats,
+            terminate_after=terminate_after,
+            timeout=timeout,
+            version=version,
+            wait_for_active_shards=wait_for_active_shards,
+            wait_for_completion=wait_for_completion,
+        ).body
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot execute delete_by_query on index {index}, server returned errors {err.errors}"
+        ) from err
+
+
+# pylint: disable=too-many-arguments
+def update_by_query(
+    index,
+    hosts=None,
+    profile=None,
+    body=None,
+    source=None,
+    query=None,
+    script=None,
+    q=None,
+    allow_no_indices=None,
+    analyze_wildcard=None,
+    analyzer=None,
+    conflicts=None,
+    default_operator=None,
+    df=None,
+    error_trace=None,
+    expand_wildcards=None,
+    filter_path=None,
+    from_=None,
+    human=None,
+    ignore_unavailable=None,
+    lenient=None,
+    max_docs=None,
+    pipeline=None,
+    preference=None,
+    pretty=None,
+    refresh=None,
+    request_cache=None,
+    requests_per_second=None,
+    routing=None,
+    scroll=None,
+    scroll_size=None,
+    search_timeout=None,
+    search_type=None,
+    slices=None,
+    sort=None,
+    stats=None,
+    terminate_after=None,
+    timeout=None,
+    version=None,
+    wait_for_active_shards=None,
+    wait_for_completion=None,
+):
+    """
+    .. versionadded:: 1.3.0
+
+    Update documents matching a query
+
+    index
+        A comma-separated list of data streams, indices, and aliases to search.
+        Supports wildcards (*).
+    body
+        Request body containing query and script. Cannot be used with source.
+    source
+        URL of file specifying request body. Cannot be used in combination with body.
+    query
+        Query in the request body to identify documents to update
+    script
+        Script to run to update the document source or metadata
+    q
+        Query in the Lucene query string syntax
+    allow_no_indices
+        Whether to ignore if a wildcard indices expression resolves into no concrete indices
+    analyzer
+        The analyzer to use for the query string
+    conflicts
+        What to do when the operation encounters version conflicts (abort or proceed)
+    default_operator
+        The default operator for query string query (AND or OR)
+    df
+        The field to use as default where no field prefix is given in the query string
+    expand_wildcards
+        Whether to expand wildcard expression to concrete indices that are open, closed or both
+    ignore_unavailable
+        Whether specified concrete indices should be ignored when unavailable
+    max_docs
+        Maximum number of documents to process (default: all documents)
+    pipeline
+        The pipeline ID to preprocess incoming documents with
+    preference
+        Specify the node or shard the operation should be performed on
+    refresh
+        If true, refresh the affected shards after performing the operation
+    requests_per_second
+        The throttle for this request in sub-requests per second (-1 means no throttle)
+    routing
+        A comma-separated list of specific routing values
+    scroll
+        Specify how long a consistent view of the index should be maintained for scrolled search
+    scroll_size
+        Size of the scroll request (default: 100)
+    search_timeout
+        Explicit timeout for each search request
+    slices
+        The number of slices this task should be divided into (default: 1, auto calculates)
+    timeout
+        Time each individual bulk request should wait for shards that are unavailable
+    wait_for_active_shards
+        Sets the number of shard copies that must be active before proceeding
+    wait_for_completion
+        If false, return task ID for async execution (default: true)
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.update_by_query testindex script='{"source": "ctx._source.status = params.status", "params": {"status": "updated"}}'
+        salt myminion elasticsearch.update_by_query testindex query='{"match": {"status": "old"}}' script='{"source": "ctx._source.status = \"new\""}'
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    if source and body:
+        message = "Either body or source should be specified but not both."
+        raise SaltInvocationError(message)
+    if source:
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
+
+    try:
+        # Build request body from parameters if body not provided
+        request_body = {}
+        if body:
+            request_body = body
+        else:
+            if query is not None:
+                request_body["query"] = query
+            if script is not None:
+                request_body["script"] = script
+
+        return elastic.update_by_query(
+            index=index,
+            allow_no_indices=allow_no_indices,
+            analyze_wildcard=analyze_wildcard,
+            analyzer=analyzer,
+            conflicts=conflicts,
+            default_operator=default_operator,
+            df=df,
+            error_trace=error_trace,
+            expand_wildcards=expand_wildcards,
+            filter_path=filter_path,
+            from_=from_,
+            human=human,
+            ignore_unavailable=ignore_unavailable,
+            lenient=lenient,
+            max_docs=max_docs,
+            pipeline=pipeline,
+            preference=preference,
+            pretty=pretty,
+            q=q,
+            query=request_body.get("query") if request_body else None,
+            refresh=refresh,
+            request_cache=request_cache,
+            requests_per_second=requests_per_second,
+            routing=routing,
+            script=request_body.get("script") if request_body else None,
+            scroll=scroll,
+            scroll_size=scroll_size,
+            search_timeout=search_timeout,
+            search_type=search_type,
+            slices=slices,
+            sort=sort,
+            stats=stats,
+            terminate_after=terminate_after,
+            timeout=timeout,
+            version=version,
+            wait_for_active_shards=wait_for_active_shards,
+            wait_for_completion=wait_for_completion,
+        ).body
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot execute update_by_query on index {index}, server returned errors {err.errors}"
+        ) from err
+
+
+# pylint: disable=too-many-arguments
+def reindex(
+    hosts=None,
+    profile=None,
+    body=None,
+    source=None,
+    dest=None,
+    source_index=None,
+    dest_index=None,
+    conflicts=None,
+    error_trace=None,
+    filter_path=None,
+    human=None,
+    max_docs=None,
+    pretty=None,
+    refresh=None,
+    requests_per_second=None,
+    require_alias=None,
+    script=None,
+    scroll=None,
+    slices=None,
+    timeout=None,
+    wait_for_active_shards=None,
+    wait_for_completion=None,
+):
+    """
+    .. versionadded:: 1.3.0
+
+    Copy documents from a source to a destination
+
+    body
+        Request body containing source and destination. Cannot be used with source file.
+    source
+        URL of file specifying reindex request. Cannot be used in combination with body.
+    dest
+        The destination you are copying to (dict with index, op_type, etc.)
+    source_index
+        The source index you are copying from (dict with index, query, etc.)
+    dest_index
+        Destination index name (simplified alternative to dest parameter)
+    source_index
+        Source index name (simplified alternative to source parameter)
+    conflicts
+        What to do when reindex encounters version conflicts (abort or proceed)
+    max_docs
+        Maximum number of documents to reindex
+    refresh
+        If true, refresh the affected shards after performing the operation
+    requests_per_second
+        The throttle for this request in sub-requests per second (-1 means no throttle)
+    require_alias
+        If true, the destination must be an index alias
+    script
+        Script to run to update the document source or metadata
+    scroll
+        Specify how long a consistent view of the index should be maintained for scrolled search
+    slices
+        The number of slices this task should be divided into (default: 1, auto calculates)
+    timeout
+        Time each individual bulk request should wait for shards that are unavailable
+    wait_for_active_shards
+        Sets the number of shard copies that must be active before proceeding
+    wait_for_completion
+        If false, return task ID for async execution (default: true)
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.reindex source_index=old_index dest_index=new_index
+        salt myminion elasticsearch.reindex body='{"source": {"index": "old"}, "dest": {"index": "new"}}'
+        salt myminion elasticsearch.reindex source_index=old dest_index=new script='{"source": "ctx._source.new_field = ctx._source.old_field"}'
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    if source and body:
+        message = "Either body or source should be specified but not both."
+        raise SaltInvocationError(message)
+    if source:
+        body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
+
+    try:
+        # Build request body from parameters if body not provided
+        request_body = {}
+        if body:
+            request_body = body
+        else:
+            # Build source and dest from simplified parameters
+            if source_index is not None:
+                if isinstance(source_index, str):
+                    request_body["source"] = {"index": source_index}
+                else:
+                    request_body["source"] = source_index
+            elif dest is not None:
+                request_body["source"] = dest
+
+            if dest_index is not None:
+                if isinstance(dest_index, str):
+                    request_body["dest"] = {"index": dest_index}
+                else:
+                    request_body["dest"] = dest_index
+            elif dest is not None:
+                request_body["dest"] = dest
+
+            if script is not None:
+                request_body["script"] = script
+
+        if not request_body.get("source") or not request_body.get("dest"):
+            raise SaltInvocationError(
+                "Both source and dest must be specified for reindex operation"
+            )
+
+        return elastic.reindex(
+            dest=request_body.get("dest"),
+            source=request_body.get("source"),
+            conflicts=conflicts,
+            error_trace=error_trace,
+            filter_path=filter_path,
+            human=human,
+            max_docs=max_docs,
+            pretty=pretty,
+            refresh=refresh,
+            requests_per_second=requests_per_second,
+            require_alias=require_alias,
+            script=request_body.get("script"),
+            scroll=scroll,
+            slices=slices,
+            timeout=timeout,
+            wait_for_active_shards=wait_for_active_shards,
+            wait_for_completion=wait_for_completion,
+        ).body
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot execute reindex, server returned errors {err.errors}"
+        ) from err
+
+
+def msearch(
+    searches,
+    index=None,
+    hosts=None,
+    profile=None,
+    source=None,
+    allow_no_indices=None,
+    ccs_minimize_roundtrips=None,
+    error_trace=None,
+    expand_wildcards=None,
+    filter_path=None,
+    human=None,
+    ignore_throttled=None,
+    ignore_unavailable=None,
+    max_concurrent_searches=None,
+    max_concurrent_shard_requests=None,
+    pre_filter_shard_size=None,
+    pretty=None,
+    rest_total_hits_as_int=None,
+    routing=None,
+    search_type=None,
+    typed_keys=None,
+):
+    """
+    .. versionadded:: 1.3.0
+
+    Run multiple search requests in a single API call
+
+    searches
+        List of search request definitions (sequence of dicts with header and body)
+    index
+        A comma-separated list of index names to use as default
+    source
+        URL of file specifying search requests. Cannot be used in combination with searches.
+    allow_no_indices
+        Whether to ignore if a wildcard indices expression resolves into no concrete indices
+    ccs_minimize_roundtrips
+        If true, network round-trips between the coordinating node and remote clusters are minimized
+    expand_wildcards
+        Whether to expand wildcard expression to concrete indices that are open, closed or both
+    ignore_unavailable
+        Whether specified concrete indices should be ignored when unavailable
+    max_concurrent_searches
+        Maximum number of concurrent searches the multi search API can execute
+    max_concurrent_shard_requests
+        The number of concurrent shard requests per node this search executes concurrently
+    pre_filter_shard_size
+        Threshold that enforces a pre-filter round-trip to prefilter search shards
+    rest_total_hits_as_int
+        If true, hits.total are rendered as an integer in the response
+    routing
+        A comma-separated list of specific routing values
+    search_type
+        Search operation type (query_then_fetch or dfs_query_then_fetch)
+    typed_keys
+        Specify whether aggregation and suggester names should be prefixed by type
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.msearch '[{}, {"query": {"match_all": {}}}, {"index": "test2"}, {"query": {"match": {"field": "value"}}}]'
+        salt myminion elasticsearch.msearch searches='[...]' index=default_index
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    if source and searches:
+        message = "Either searches or source should be specified but not both."
+        raise SaltInvocationError(message)
+    if source:
+        searches = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
+
+    if not searches:
+        raise SaltInvocationError("searches parameter is required")
+
+    try:
+        return elastic.msearch(
+            searches=searches,
+            index=index,
+            allow_no_indices=allow_no_indices,
+            ccs_minimize_roundtrips=ccs_minimize_roundtrips,
+            error_trace=error_trace,
+            expand_wildcards=expand_wildcards,
+            filter_path=filter_path,
+            human=human,
+            ignore_throttled=ignore_throttled,
+            ignore_unavailable=ignore_unavailable,
+            max_concurrent_searches=max_concurrent_searches,
+            max_concurrent_shard_requests=max_concurrent_shard_requests,
+            pre_filter_shard_size=pre_filter_shard_size,
+            pretty=pretty,
+            rest_total_hits_as_int=rest_total_hits_as_int,
+            routing=routing,
+            search_type=search_type,
+            typed_keys=typed_keys,
+        ).body
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot execute msearch, server returned errors {err.errors}"
+        ) from err
+
+
+def scroll(
+    scroll_id,
+    hosts=None,
+    profile=None,
+    scroll=None,
+    error_trace=None,
+    filter_path=None,
+    human=None,
+    pretty=None,
+    rest_total_hits_as_int=None,
+):
+    """
+    .. versionadded:: 1.3.0
+
+    Retrieve the next batch of results for a scrolling search
+
+    scroll_id
+        The scroll ID for the search
+    scroll
+        Period to retain the search context for scrolling (e.g., '1m')
+    rest_total_hits_as_int
+        If true, hits.total are rendered as an integer in the response
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.scroll scroll_id='DXF1ZXJ5Q...' scroll='1m'
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    if not scroll_id:
+        raise SaltInvocationError("scroll_id parameter is required")
+
+    try:
+        return elastic.scroll(
+            scroll_id=scroll_id,
+            error_trace=error_trace,
+            filter_path=filter_path,
+            human=human,
+            pretty=pretty,
+            rest_total_hits_as_int=rest_total_hits_as_int,
+            scroll=scroll,
+        ).body
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot execute scroll, server returned errors {err.errors}"
+        ) from err
+
+
+def clear_scroll(
+    scroll_id=None,
+    hosts=None,
+    profile=None,
+    error_trace=None,
+    filter_path=None,
+    human=None,
+    pretty=None,
+):
+    """
+    .. versionadded:: 1.3.0
+
+    Clear the search context for a scrolling search
+
+    scroll_id
+        The scroll ID or list of scroll IDs to clear. Use '_all' to clear all scroll IDs.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.clear_scroll scroll_id='DXF1ZXJ5Q...'
+        salt myminion elasticsearch.clear_scroll scroll_id='_all'
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    try:
+        return elastic.clear_scroll(
+            error_trace=error_trace,
+            filter_path=filter_path,
+            human=human,
+            pretty=pretty,
+            scroll_id=scroll_id,
+        ).body
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot clear scroll, server returned errors {err.errors}"
+        ) from err
+
+
+def open_point_in_time(
+    index,
+    keep_alive,
+    hosts=None,
+    profile=None,
+    allow_partial_search_results=None,
+    error_trace=None,
+    expand_wildcards=None,
+    filter_path=None,
+    human=None,
+    ignore_unavailable=None,
+    preference=None,
+    pretty=None,
+    routing=None,
+):
+    """
+    .. versionadded:: 1.3.0
+
+    Open a point in time for searching
+
+    index
+        A comma-separated list of index names to open point in time.
+        Use _all or * or empty string to perform the operation on all indices.
+    keep_alive
+        Specific the time to live for the point in time (e.g., '1m', '1h')
+    allow_partial_search_results
+        If false, throws exception if request targets unavailable shards
+    expand_wildcards
+        Whether to expand wildcard expression to concrete indices that are open, closed or both
+    ignore_unavailable
+        Whether specified concrete indices should be ignored when unavailable
+    preference
+        Specify the node or shard the operation should be performed on
+    routing
+        A comma-separated list of specific routing values
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.open_point_in_time myindex keep_alive='1m'
+        salt myminion elasticsearch.open_point_in_time myindex keep_alive='5m' ignore_unavailable=True
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    if not keep_alive:
+        raise SaltInvocationError("keep_alive parameter is required")
+
+    try:
+        return elastic.open_point_in_time(
+            index=index,
+            keep_alive=keep_alive,
+            allow_partial_search_results=allow_partial_search_results,
+            error_trace=error_trace,
+            expand_wildcards=expand_wildcards,
+            filter_path=filter_path,
+            human=human,
+            ignore_unavailable=ignore_unavailable,
+            preference=preference,
+            pretty=pretty,
+            routing=routing,
+        ).body
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot open point in time for index {index}, server returned errors {err.errors}"
+        ) from err
+
+
+def close_point_in_time(
+    id_,
+    hosts=None,
+    profile=None,
+    error_trace=None,
+    filter_path=None,
+    human=None,
+    pretty=None,
+):
+    r"""
+    .. versionadded:: 1.3.0
+
+    Close a point in time
+
+    id\_
+        The ID of the point-in-time to close
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.close_point_in_time id_='46ToAwMDaWR5BXV1aWQy...'
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    if not id_:
+        raise SaltInvocationError("id_ parameter is required")
+
+    try:
+        return elastic.close_point_in_time(
+            id=id_,
+            error_trace=error_trace,
+            filter_path=filter_path,
+            human=human,
+            pretty=pretty,
+        ).body
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot close point in time, server returned errors {err.errors}"
         ) from err
 
 

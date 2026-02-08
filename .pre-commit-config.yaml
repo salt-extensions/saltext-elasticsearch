@@ -119,6 +119,7 @@ repos:
         alias: lint-src
         name: Lint Source Code
         language: python
+        language_version: python3.10
         entry: nox -e lint-code-pre-commit --
         files: ^((setup|noxfile)|src/.*)\.py$
         require_serial: true
@@ -130,6 +131,7 @@ repos:
         alias: lint-tests
         name: Lint Tests
         language: python
+        language_version: python3.10
         entry: nox -e lint-tests-pre-commit --
         files: ^tests/.*\.py$
         require_serial: true

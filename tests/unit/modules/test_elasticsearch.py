@@ -12,7 +12,10 @@ from tests.support.unit import TestCase
 elastic = pytest.importorskip("elasticsearch")
 
 ES_MAJOR_VERSION = elastic.__version__[0]
-if ES_MAJOR_VERSION >= 8:
+if ES_MAJOR_VERSION >= 9:
+    import saltext.elasticsearch.modules.elasticsearch9_mod as elasticsearch_module
+    from tests.support.esmockutils.elasticsearch_mock9 import MockElastic
+elif ES_MAJOR_VERSION >= 8:
     import saltext.elasticsearch.modules.elasticsearch8_mod as elasticsearch_module
     from tests.support.esmockutils.elasticsearch_mock8 import MockElastic
 else:
@@ -1782,3 +1785,378 @@ else:
                 MagicMock(return_value=MockElastic(failure=True)),
             ):
                 pytest.raises(CommandExecutionError, elasticsearch_module.template_exists, "foo")
+
+        # 'document_update' function tests: 2
+
+        def test_document_update(self):
+            """
+            Test if document can be updated
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.document_update(
+                    "testindex", "123", doc={"field": "value"}
+                )
+                assert result["result"] == "updated"
+
+        def test_document_update_failure(self):
+            """
+            Test if document update fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(
+                    CommandExecutionError,
+                    elasticsearch_module.document_update,
+                    "testindex",
+                    "123",
+                    doc={"field": "value"},
+                )
+
+        # 'search' function tests: 2
+
+        def test_search(self):
+            """
+            Test if search succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.search("testindex", query={"match_all": {}})
+                assert "hits" in result
+                assert result["hits"]["total"]["value"] == 2
+
+        def test_search_failure(self):
+            """
+            Test if search fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(
+                    CommandExecutionError,
+                    elasticsearch_module.search,
+                    "testindex",
+                    query={"match_all": {}},
+                )
+
+        # 'bulk' function tests: 2
+
+        def test_bulk(self):
+            """
+            Test if bulk operation succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                operations = [{"index": {"_index": "test", "_id": "1"}}, {"field": "value"}]
+                result = elasticsearch_module.bulk(operations)
+                assert result["errors"] is False
+
+        def test_bulk_failure(self):
+            """
+            Test if bulk operation fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                operations = [{"index": {"_index": "test", "_id": "1"}}, {"field": "value"}]
+                pytest.raises(CommandExecutionError, elasticsearch_module.bulk, operations)
+
+
+if ES_MAJOR_VERSION >= 9:
+
+    class Elasticsearch9TestCase(TestCase):
+        """
+        Test cases for Elasticsearch 9+ specific methods
+        """
+
+        # 'count' function tests: 2
+
+        def test_count(self):
+            """
+            Test if count succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.count("testindex", q="status:active")
+                assert result["count"] == 42
+
+        def test_count_failure(self):
+            """
+            Test if count fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(CommandExecutionError, elasticsearch_module.count, "testindex")
+
+        # 'mget' function tests: 2
+
+        def test_mget(self):
+            """
+            Test if mget succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.mget("testindex", ids=["1", "2"])
+                assert len(result["docs"]) == 2
+                assert result["docs"][0]["found"] is True
+
+        def test_mget_failure(self):
+            """
+            Test if mget fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(
+                    CommandExecutionError, elasticsearch_module.mget, "testindex", ids=["1", "2"]
+                )
+
+        # 'delete_by_query' function tests: 2
+
+        def test_delete_by_query(self):
+            """
+            Test if delete_by_query succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.delete_by_query(
+                    "testindex", query={"match": {"status": "old"}}
+                )
+                assert result["deleted"] == 10
+
+        def test_delete_by_query_failure(self):
+            """
+            Test if delete_by_query fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(
+                    CommandExecutionError,
+                    elasticsearch_module.delete_by_query,
+                    "testindex",
+                    query={"match_all": {}},
+                )
+
+        # 'update_by_query' function tests: 2
+
+        def test_update_by_query(self):
+            """
+            Test if update_by_query succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.update_by_query(
+                    "testindex",
+                    query={"match": {"status": "pending"}},
+                    script={"source": "ctx._source.status = 'processed'"},
+                )
+                assert result["updated"] == 15
+
+        def test_update_by_query_failure(self):
+            """
+            Test if update_by_query fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(
+                    CommandExecutionError,
+                    elasticsearch_module.update_by_query,
+                    "testindex",
+                    query={"match_all": {}},
+                )
+
+        # 'reindex' function tests: 2
+
+        def test_reindex(self):
+            """
+            Test if reindex succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.reindex(
+                    source_index="oldindex", dest_index="newindex"
+                )
+                assert result["created"] == 100
+
+        def test_reindex_failure(self):
+            """
+            Test if reindex fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(
+                    CommandExecutionError,
+                    elasticsearch_module.reindex,
+                    source_index="oldindex",
+                    dest_index="newindex",
+                )
+
+        # 'msearch' function tests: 2
+
+        def test_msearch(self):
+            """
+            Test if msearch succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                searches = [
+                    {"index": "test1"},
+                    {"query": {"match_all": {}}},
+                    {"index": "test2"},
+                    {"query": {"match_all": {}}},
+                ]
+                result = elasticsearch_module.msearch(searches)
+                assert len(result["responses"]) == 2
+
+        def test_msearch_failure(self):
+            """
+            Test if msearch fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                searches = [{"index": "test"}, {"query": {"match_all": {}}}]
+                pytest.raises(CommandExecutionError, elasticsearch_module.msearch, searches)
+
+        # 'scroll' function tests: 2
+
+        def test_scroll(self):
+            """
+            Test if scroll succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.scroll(scroll_id="scroll123", scroll="5m")
+                assert "_scroll_id" in result
+                assert len(result["hits"]["hits"]) == 2
+
+        def test_scroll_failure(self):
+            """
+            Test if scroll fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(
+                    CommandExecutionError,
+                    elasticsearch_module.scroll,
+                    scroll_id="scroll123",
+                    scroll="5m",
+                )
+
+        # 'clear_scroll' function tests: 2
+
+        def test_clear_scroll(self):
+            """
+            Test if clear_scroll succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.clear_scroll(scroll_id="scroll123")
+                assert result["succeeded"] is True
+
+        def test_clear_scroll_failure(self):
+            """
+            Test if clear_scroll fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(
+                    CommandExecutionError,
+                    elasticsearch_module.clear_scroll,
+                    scroll_id="scroll123",
+                )
+
+        # 'open_point_in_time' function tests: 2
+
+        def test_open_point_in_time(self):
+            """
+            Test if open_point_in_time succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.open_point_in_time("testindex", keep_alive="5m")
+                assert "id" in result
+
+        def test_open_point_in_time_failure(self):
+            """
+            Test if open_point_in_time fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(
+                    CommandExecutionError,
+                    elasticsearch_module.open_point_in_time,
+                    "testindex",
+                    keep_alive="5m",
+                )
+
+        # 'close_point_in_time' function tests: 2
+
+        def test_close_point_in_time(self):
+            """
+            Test if close_point_in_time succeeds
+            """
+            with patch.object(
+                elasticsearch_module, "_get_instance", MagicMock(return_value=MockElastic())
+            ):
+                result = elasticsearch_module.close_point_in_time(id_="pit123")
+                assert result["succeeded"] is True
+
+        def test_close_point_in_time_failure(self):
+            """
+            Test if close_point_in_time fails with CommandExecutionError
+            """
+            with patch.object(
+                elasticsearch_module,
+                "_get_instance",
+                MagicMock(return_value=MockElastic(failure=True)),
+            ):
+                pytest.raises(
+                    CommandExecutionError,
+                    elasticsearch_module.close_point_in_time,
+                    id_="pit123",
+                )
