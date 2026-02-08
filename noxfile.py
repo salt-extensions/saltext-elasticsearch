@@ -113,6 +113,20 @@ def _install_requirements(
             finally:
                 os.unlink(constraints_file.name)
 
+            # Salt doesn't properly declare all its runtime dependencies in package metadata
+            # (they are in requirements/base.txt but not in its setup config), so uv doesn't
+            # resolve them transitively. Install the known missing runtime deps explicitly.
+            salt_missing_deps = [
+                "jinja2",
+                "markupsafe",
+                "requests",
+                "looseversion",
+                "tornado",
+                "aiohttp",
+                "pyyaml",
+            ]
+            session.install(no_progress, *salt_missing_deps, silent=PIP_INSTALL_SILENT)
+
         if install_test_requirements:
             install_extras.append("tests")
 
