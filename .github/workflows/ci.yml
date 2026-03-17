@@ -3,37 +3,24 @@ name: CI
 
 on:
   workflow_call:
-    inputs:
-      deploy-docs:
-        required: false
-        type: boolean
-        default: false
-      release:
-        required: false
-        type: boolean
-        default: false
-      version:
-        required: false
-        type: string
-    secrets:
-      PYPI_API_TOKEN:
-        required: false
-      TEST_PYPI_API_TOKEN:
-        required: false
-
 
 jobs:
   get-changed-files:
     name: Get Changed Files
     uses: ./.github/workflows/get-changed-files.yml
+    permissions:
+      contents: read
+      pull-requests: read  # for dorny/paths-filter to read pull requests
 
   pre-commit:
     name: Pre-Commit
-    uses: ./.github/workflows/pre-commit-action.yml
     needs:
       - get-changed-files
+    uses: ./.github/workflows/pre-commit-action.yml
     with:
       changed-files: ${{ needs.get-changed-files.outputs.changed-files }}
+    permissions:
+      contents: read
 
   test:
     name: Test
@@ -46,65 +33,14 @@ jobs:
     needs:
       - pre-commit
     uses: ./.github/workflows/docs-action.yml
-
-  check-prepare-release:
-    name: Check if we can prepare release PR
-    if: >-
-      github.event_name == 'push' &&
-      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-    needs:
-      - docs
-      - test
-    runs-on: ubuntu-24.04
-    outputs:
-      news-fragments-available: ${{ steps.check-available.outputs.available }}
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-
-      - name: Check if news fragments are available
-        id: check-available
-        run: |
-          if [ -n "$(find changelog -type f -not -name '.*' -print -quit)" ]; then
-            echo "available=1" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=0" >> "$GITHUB_OUTPUT"
-          fi
-
-  prepare-release:
-    name: Prepare Release PR
-    if: ${{ needs.check-prepare-release.outputs.news-fragments-available == '1' }}
-    needs:
-      - check-prepare-release
-      - docs
-      - test
     permissions:
-      contents: write
-      pull-requests: write
-    uses: ./.github/workflows/prepare-release-action.yml
-
-  deploy-docs:
-    name: Deploy Docs
-    uses: ./.github/workflows/deploy-docs-action.yml
-    # Only build doc deployments from the default branch of the repo and never for PRs,
-    # unless the triggering event was the release PR being merged.
-    if: >-
-      inputs.deploy-docs &&
-      (
-        github.event_name != 'pull_request' ||
-        inputs.release
-      ) &&
-      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-    needs:
-      - docs
-      - test
+      contents: read
 
   build-python-package:
     name: Python Package
-    if: ${{ inputs.release && success() }}
-    uses: ./.github/workflows/package-action.yml
     needs:
       - pre-commit
+<<<<<<< before updating
     with:
       version: "${{ inputs.version }}"
 
@@ -174,3 +110,8 @@ jobs:
         if: always()
         run:
           echo "All workflows finished"
+=======
+    uses: ./.github/workflows/package-action.yml
+    permissions:
+      contents: read
+>>>>>>> after updating
