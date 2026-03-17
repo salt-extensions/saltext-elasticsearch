@@ -76,9 +76,6 @@ jobs:
           attestations: ${{ secrets.TEST_PYPI_API_TOKEN == '' }}
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
-<<<<<<< before updating
-          verbose: true
-=======
           verbose: ${{ runner.debug == '1' }}
 
   pypi_release:
@@ -138,7 +135,6 @@ jobs:
           path: dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
->>>>>>> after updating
 
       - name: Create GitHub Release
         env:
