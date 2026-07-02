@@ -23,12 +23,8 @@ jobs:
 
       - name: Delete Exit Status Artifacts
         if: always()
-<<<<<<< before updating
         continue-on-error: true
-        uses: geekyeggo/delete-artifact@7ee91e82b4a7f3339cd8b14beace3d826a2aac39  # v5.1.0
-=======
         uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118  # v6.0.0
->>>>>>> after updating
         with:
           name: exitstatus-*
           useGlob: true
