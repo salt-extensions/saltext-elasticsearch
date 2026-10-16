@@ -83,7 +83,8 @@ def test_falls_back_to_elasticsearch_8(es8_paths, target, monkeypatch):
 def test_falls_back_to_elasticsearch_9(es8_paths, target, monkeypatch):
     """
     The fallback also works with a standard elasticsearch 9.x client; the
-    ES8 files load under the >= 8 version gate.
+    ES8 files still import, but the restored version gate defers loading to
+    the elasticsearch9 returner.
     """
     monkeypatch.setitem(sys.modules, "elastic_transport", types.ModuleType("elastic_transport"))
     monkeypatch.setattr(sys.modules["elastic_transport"], "RequestsHttpNode", object, raising=False)
@@ -95,7 +96,9 @@ def test_falls_back_to_elasticsearch_9(es8_paths, target, monkeypatch):
     assert mod.HAS_ELASTICSEARCH is True
     assert mod.ES_MAJOR_VERSION == 9
     assert mod.elasticsearch is stub
-    assert mod.__virtual__() == "elasticsearch"
+    ret = mod.__virtual__()
+    assert ret[0] is False
+    assert "9+" in ret[1]
 
 
 @pytest.mark.parametrize("target", ["module", "returner"])

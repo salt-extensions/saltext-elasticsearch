@@ -375,6 +375,8 @@ def __virtual__():
         )
     if ES_MAJOR_VERSION < 8:
         return (False, "Cannot load the module, elasticserach version is not 8+")
+    if ES_MAJOR_VERSION >= 9:
+        return (False, "Cannot load the module, elasticsearch version is 9+, use the elasticsearch9 returner")
 
     return __virtualname__
 

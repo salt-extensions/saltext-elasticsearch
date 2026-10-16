@@ -47,6 +47,7 @@ except ImportError:
     _es_stub.ApiError = ApiError
     _es_stub.BadRequestError = BadRequestError
     _es_stub.Elasticsearch = None
+    _es_stub.RequestsHttpConnection = object
     _es_stub.exceptions = types.SimpleNamespace(
         TransportError=TransportError,
         NotFoundError=NotFoundError,

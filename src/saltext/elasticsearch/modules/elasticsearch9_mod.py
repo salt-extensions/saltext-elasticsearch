@@ -63,7 +63,7 @@ from salt.exceptions import SaltInvocationError
 log = logging.getLogger(__name__)
 
 try:
-    import elasticsearch8 as elasticsearch
+    import elasticsearch
     from elastic_transport import RequestsHttpNode
 
     HAS_ELASTICSEARCH = True

@@ -59,7 +59,7 @@ from salt.exceptions import CommandExecutionError
 from salt.exceptions import SaltInvocationError
 
 try:
-    import elasticsearch8 as elasticsearch
+    import elasticsearch
     from elasticsearch import RequestsHttpConnection
 
     HAS_ELASTICSEARCH = True

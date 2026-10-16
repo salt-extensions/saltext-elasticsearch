@@ -20,6 +20,16 @@ elif ES_MAJOR_VERSION >= 8:
 else:
     import saltext.elasticsearch.returners.elasticsearch6_mod as elasticsearch_return
 
+import saltext.elasticsearch.returners.elasticsearch6_mod as es6_return
+import saltext.elasticsearch.returners.elasticsearch8_mod as es8_return
+import saltext.elasticsearch.returners.elasticsearch9_mod as es9_return
+
+RETURNER_MODULES = [
+    pytest.param(es6_return, id="es6"),
+    pytest.param(es8_return, id="es8"),
+    pytest.param(es9_return, id="es9"),
+]
+
 
 @pytest.fixture
 def configure_loader_modules():
@@ -114,6 +124,36 @@ def test__virtual_with_old_version():
         patch.object(elasticsearch_return, "ES_MAJOR_VERSION", 8),
     ):
         result = elasticsearch_return.__virtual__()
+        assert result[0] is False
+        assert "9" in result[1]
+
+
+def test__virtual_es6_rejects_v8_client():
+    """
+    The ES6 returner does not load when a v8+ client is installed.
+    """
+    with patch.object(es6_return, "ES_MAJOR_VERSION", 8):
+        result = es6_return.__virtual__()
+        assert result[0] is False
+        assert "8+" in result[1]
+
+
+def test__virtual_es9_rejects_v8_client():
+    """
+    The ES9 returner does not load when the v8 client is installed.
+    """
+    with patch.object(es9_return, "ES_MAJOR_VERSION", 8):
+        result = es9_return.__virtual__()
+        assert result[0] is False
+        assert "9" in result[1]
+
+
+def test__virtual_es8_rejects_v9_client():
+    """
+    The ES8 returner does not load when a 9+ client is installed.
+    """
+    with patch.object(es8_return, "ES_MAJOR_VERSION", 9):
+        result = es8_return.__virtual__()
         assert result[0] is False
         assert "9" in result[1]
 
@@ -545,7 +585,8 @@ def test_returner_payload_structure(mock_salt, default_options, sample_ret):
 # ---------------------------------------------------------------------------
 
 
-def test_event_return(mock_salt, default_options):
+@pytest.mark.parametrize("returner_mod", RETURNER_MODULES)
+def test_event_return(mock_salt, default_options, returner_mod):
     """
     Basic event return, verifies document_create called with event index.
     """
@@ -553,17 +594,18 @@ def test_event_return(mock_salt, default_options):
         {"tag": "salt/job/123/ret/minion1", "data": {"return": True}},
     ]
     with (
-        patch.dict(elasticsearch_return.__salt__, mock_salt),
-        patch.dict(elasticsearch_return.__opts__, {}),
+        patch.dict(returner_mod.__salt__, mock_salt),
+        patch.dict(returner_mod.__opts__, {}),
         patch("salt.returners.get_returner_options", return_value=default_options),
     ):
-        elasticsearch_return.event_return(events)
+        returner_mod.event_return(events)
         mock_salt["elasticsearch.document_create"].assert_called_once()
         kwargs = mock_salt["elasticsearch.document_create"].call_args[1]
         assert kwargs["index"] == "salt-master-event-cache"
 
 
-def test_event_return_multiple_events(mock_salt, default_options):
+@pytest.mark.parametrize("returner_mod", RETURNER_MODULES)
+def test_event_return_multiple_events(mock_salt, default_options, returner_mod):
     """
     Multiple events should each produce a document_create call.
     """
@@ -573,28 +615,30 @@ def test_event_return_multiple_events(mock_salt, default_options):
         {"tag": "salt/job/3/ret/minion3", "data": {"return": "ok"}},
     ]
     with (
-        patch.dict(elasticsearch_return.__salt__, mock_salt),
-        patch.dict(elasticsearch_return.__opts__, {}),
+        patch.dict(returner_mod.__salt__, mock_salt),
+        patch.dict(returner_mod.__opts__, {}),
         patch("salt.returners.get_returner_options", return_value=default_options),
     ):
-        elasticsearch_return.event_return(events)
+        returner_mod.event_return(events)
         assert mock_salt["elasticsearch.document_create"].call_count == 3
 
 
-def test_event_return_empty(mock_salt, default_options):
+@pytest.mark.parametrize("returner_mod", RETURNER_MODULES)
+def test_event_return_empty(mock_salt, default_options, returner_mod):
     """
     Empty events list should not call document_create and should not crash.
     """
     with (
-        patch.dict(elasticsearch_return.__salt__, mock_salt),
-        patch.dict(elasticsearch_return.__opts__, {}),
+        patch.dict(returner_mod.__salt__, mock_salt),
+        patch.dict(returner_mod.__opts__, {}),
         patch("salt.returners.get_returner_options", return_value=default_options),
     ):
-        elasticsearch_return.event_return([])
+        returner_mod.event_return([])
         mock_salt["elasticsearch.document_create"].assert_not_called()
 
 
-def test_event_return_with_index_date(mock_salt, default_options):
+@pytest.mark.parametrize("returner_mod", RETURNER_MODULES)
+def test_event_return_with_index_date(mock_salt, default_options, returner_mod):
     """
     index_date=True appends date to event index.
     """
@@ -604,11 +648,11 @@ def test_event_return_with_index_date(mock_salt, default_options):
     ]
     today = datetime.date.today().strftime("%Y.%m.%d")
     with (
-        patch.dict(elasticsearch_return.__salt__, mock_salt),
-        patch.dict(elasticsearch_return.__opts__, {}),
+        patch.dict(returner_mod.__salt__, mock_salt),
+        patch.dict(returner_mod.__opts__, {}),
         patch("salt.returners.get_returner_options", return_value=opts),
     ):
-        elasticsearch_return.event_return(events)
+        returner_mod.event_return(events)
         kwargs = mock_salt["elasticsearch.document_create"].call_args[1]
         assert kwargs["index"] == f"salt-master-event-cache-{today}"
 

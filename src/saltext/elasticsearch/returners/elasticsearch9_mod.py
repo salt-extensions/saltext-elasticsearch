@@ -325,22 +325,18 @@ def _load_modules_ssh(__salt__):
         if f not in __salt__:
             if not loaded:
                 # pylint: disable=import-outside-toplevel
-                import saltext.elasticsearch.modules.elasticsearch8_mod
+                import saltext.elasticsearch.modules.elasticsearch9_mod
                 loaded = True
-                saltext.elasticsearch.modules.elasticsearch8_mod.__salt__ = __salt__
+                saltext.elasticsearch.modules.elasticsearch9_mod.__salt__ = __salt__
             # pylint: disable=eval-used
-            __salt__[f] = eval(f"saltext.elasticsearch.modules.elasticsearch8_mod.{f.split('.')[1]}")
+            __salt__[f] = eval(f"saltext.elasticsearch.modules.elasticsearch9_mod.{f.split('.')[1]}")
     if "config.option" not in __salt__:
         __salt__["config.option"] = salt.modules.config.option
 
 
 try:
     # pylint: disable=import-outside-toplevel
-    try:
-        import elasticsearch8 as elasticsearch  # pylint: disable=import-outside-toplevel
-    except ImportError:
-        # pylint: disable=import-outside-toplevel
-        import elasticsearch
+    import elasticsearch
 
     HAS_ELASTICSEARCH = True
     ES_MAJOR_VERSION = elasticsearch.__version__[0]
@@ -373,8 +369,8 @@ def __virtual__():
             False,
             "Cannot load module elasticsearch: elasticsearch librarielastic not found",
         )
-    if ES_MAJOR_VERSION < 8:
-        return (False, "Cannot load the module, elasticserach version is not 8+")
+    if ES_MAJOR_VERSION < 9:
+        return (False, "Cannot load the module, elasticsearch version is not 9+")
 
     return __virtualname__
 
@@ -645,11 +641,11 @@ def event_return(events):
     for event in events:
         data = {"tag": event.get("tag", ""), "data": event.get("data", "")}
 
-    __salt__["elasticsearch.document_create"](
-        index=index,
-        id_=uuid.uuid4(),
-        document=salt.utils.json.dumps(data),
-    )
+        __salt__["elasticsearch.document_create"](
+            index=index,
+            id_=uuid.uuid4(),
+            document=salt.utils.json.dumps(data),
+        )
 
 
 def prep_jid(nocache=False, passed_jid=None):  # pylint: disable=unused-argument
