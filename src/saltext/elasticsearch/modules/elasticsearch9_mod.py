@@ -1286,6 +1286,7 @@ def document_get(
         ) from err
 
 
+# pylint: disable=unused-argument
 def document_get_all(
     index,
     hosts=None,

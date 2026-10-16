@@ -43,6 +43,8 @@ def default_options():
         "states_order_output": False,
         "states_count": False,
         "states_single_index": False,
+        "dev": False,
+        "failover": False,
     }
 
 
@@ -52,9 +54,16 @@ def mock_salt():
     return {
         "elasticsearch.index_exists": MagicMock(return_value=True),
         "elasticsearch.index_create": MagicMock(return_value=True),
+        "elasticsearch.alias_exists": MagicMock(return_value=False),
         "elasticsearch.alias_create": MagicMock(return_value=True),
+        "elasticsearch.alias_delete": MagicMock(return_value=True),
+        "elasticsearch.document_exists": MagicMock(return_value=False),
         "elasticsearch.document_create": MagicMock(return_value=True),
         "elasticsearch.document_get": MagicMock(return_value=None),
+        "elasticsearch.document_update": MagicMock(return_value=True),
+        "elasticsearch.search": MagicMock(return_value={"hits": {"hits": []}}),
+        "elasticsearch.document_get_all": MagicMock(return_value={"hits": []}),
+        "config.option": MagicMock(return_value={}),
     }
 
 
@@ -138,32 +147,45 @@ def test__get_options_defaults(mock_salt, default_options):
 
 def test__ensure_index_already_exists(mock_salt, default_options):
     """
-    When index_exists returns True, no create/alias calls should be made.
+    When the -v2 index exists, no create/alias calls should be made.
     """
     mock_salt["elasticsearch.index_exists"].return_value = True
     with patch.dict(elasticsearch_return.__salt__, mock_salt):
         elasticsearch_return._ensure_index("salt-test_ping")
-        mock_salt["elasticsearch.index_exists"].assert_called_once_with("salt-test_ping")
+        mock_salt["elasticsearch.index_exists"].assert_called_once_with(index="salt-test_ping-v2")
         mock_salt["elasticsearch.index_create"].assert_not_called()
         mock_salt["elasticsearch.alias_create"].assert_not_called()
 
 
 def test__ensure_index_creates_new(mock_salt, default_options):
     """
-    When index_exists returns False, calls index_create with {index}-v1 and alias_create.
+    When the -v2 index is missing, index_create is called with -v2 and the alias
+    is created pointing at it.
     """
     mock_salt["elasticsearch.index_exists"].return_value = False
-    with (
-        patch.dict(elasticsearch_return.__salt__, mock_salt),
-        patch.dict(elasticsearch_return.__opts__, {}),
-        patch("salt.returners.get_returner_options", return_value=default_options),
-    ):
+    with patch.dict(elasticsearch_return.__salt__, mock_salt):
         elasticsearch_return._ensure_index("salt-test_ping")
         mock_salt["elasticsearch.index_create"].assert_called_once()
-        create_args = mock_salt["elasticsearch.index_create"].call_args
-        assert create_args[0][0] == "salt-test_ping-v1"
+        create_kwargs = mock_salt["elasticsearch.index_create"].call_args[1]
+        assert create_kwargs["index"] == "salt-test_ping-v2"
+        assert "number_of_shards" in create_kwargs["settings"]
+        assert "properties" in create_kwargs["mappings"]
         mock_salt["elasticsearch.alias_create"].assert_called_once_with(
-            "salt-test_ping-v1", "salt-test_ping"
+            indices="salt-test_ping-v2", alias="salt-test_ping"
+        )
+
+
+def test__ensure_index_replaces_stale_alias(mock_salt, default_options):
+    """
+    When the -v1 alias still points at the old index, it is deleted before
+    creating the -v2 alias.
+    """
+    mock_salt["elasticsearch.index_exists"].return_value = False
+    mock_salt["elasticsearch.alias_exists"].return_value = True
+    with patch.dict(elasticsearch_return.__salt__, mock_salt):
+        elasticsearch_return._ensure_index("salt-test_ping")
+        mock_salt["elasticsearch.alias_delete"].assert_called_once_with(
+            indices="salt-test_ping-v1", aliases="salt-test_ping"
         )
 
 
@@ -293,7 +315,7 @@ def test_returner_with_data_field(mock_salt, default_options):
         mock_salt["elasticsearch.document_create"].assert_called_once()
         kwargs = mock_salt["elasticsearch.document_create"].call_args[1]
         doc = salt.utils.json.loads(kwargs["document"])
-        assert doc["data"] == {"some": "data"}
+        assert salt.utils.json.loads(doc["data"]) == {"some": "data"}
 
 
 def test_returner_index_date(mock_salt, default_options, sample_ret):
@@ -447,11 +469,11 @@ def test_returner_states_order_output(mock_salt, default_options):
         assert kwargs["index"] == "salt-state_apply-ordered"
         doc = salt.utils.json.loads(kwargs["document"])
         # Keys should be prefixed with zero-padded run numbers
-        data_keys = list(doc["data"].keys())
+        data_keys = list(salt.utils.json.loads(doc["data"]).keys())
         assert any(k.startswith("0_|-") for k in data_keys)
         assert any(k.startswith("1_|-") for k in data_keys)
         # _func field should be set
-        for v in doc["data"].values():
+        for v in salt.utils.json.loads(doc["data"]).values():
             assert "_func" in v
 
 
@@ -474,12 +496,12 @@ def test_returner_state_non_dict_return(mock_salt, default_options):
         elasticsearch_return.returner(ret)
         kwargs = mock_salt["elasticsearch.document_create"].call_args[1]
         doc = salt.utils.json.loads(kwargs["document"])
-        assert doc["data"] == {"return": "Error: something went wrong"}
+        assert salt.utils.json.loads(doc["data"]) == {"return": "Error: something went wrong"}
 
 
 def test_returner_debug_payload(mock_salt, default_options, sample_ret):
     """
-    debug_returner_payload=True, verify log.debug called.
+    debug_returner_payload=True, verify log.debug called with the payload.
     """
     opts = {**default_options, "debug_returner_payload": True}
     with (
@@ -489,8 +511,7 @@ def test_returner_debug_payload(mock_salt, default_options, sample_ret):
         patch.object(elasticsearch_return.log, "debug") as mock_debug,
     ):
         elasticsearch_return.returner(sample_ret)
-        mock_debug.assert_called_once()
-        assert "payload" in mock_debug.call_args[0][0].lower()
+        assert any("payload" in str(call.args[0]).lower() for call in mock_debug.call_args_list)
 
 
 def test_returner_payload_structure(mock_salt, default_options, sample_ret):
@@ -511,6 +532,7 @@ def test_returner_payload_structure(mock_salt, default_options, sample_ret):
             "retcode",
             "minion",
             "fun",
+            "fun_args",
             "jid",
             "counts",
             "data",
@@ -625,10 +647,18 @@ def test_prep_jid_generates_new():
 
 def test_save_load(mock_salt, default_options):
     """
-    Verifies document_create called with correct index, id, and data.
+    Verifies document_create called with correct index, id, and cache doc.
     """
     jid = "20230101120000000000"
-    load = {"fun": "test.ping", "arg": []}
+    load = {
+        "fun": "test.ping",
+        "jid": jid,
+        "id": "minion1",
+        "tgt": "*",
+        "tgt_type": "glob",
+        "_stamp": "2026-09-24T12:00:00Z",
+    }
+    mock_salt["elasticsearch.document_exists"].return_value = False
     with (
         patch.dict(elasticsearch_return.__salt__, mock_salt),
         patch.dict(elasticsearch_return.__opts__, {}),
@@ -640,8 +670,8 @@ def test_save_load(mock_salt, default_options):
         assert kwargs["index"] == "salt-master-job-cache"
         assert kwargs["id_"] == jid
         doc = salt.utils.json.loads(kwargs["document"])
+        assert doc["Function"] == "test.ping"
         assert doc["jid"] == jid
-        assert doc["load"] == load
 
 
 # ---------------------------------------------------------------------------
@@ -651,10 +681,19 @@ def test_save_load(mock_salt, default_options):
 
 def test_get_load_with_data(mock_salt, default_options):
     """
-    document_get returns data, verify JSON parsed correctly.
+    document_get returns a dict response, verify fields are unmapped.
     """
-    expected_data = {"jid": "20230101120000000000", "load": {"fun": "test.ping"}}
-    mock_salt["elasticsearch.document_get"].return_value = salt.utils.json.dumps(expected_data)
+    cache_doc = {
+        "Function": "test.ping",
+        "Target": "*",
+        "Target-type": "glob",
+        "User": "norbert",
+        "jid": "20230101120000000000",
+        "Arguments": salt.utils.json.dumps(["timeout=5"]),
+        "StartTime": "2026-09-24T12:00:00Z",
+        "@timestamp": "2026-09-24T12:00:00Z",
+    }
+    mock_salt["elasticsearch.document_get"].return_value = {"_source": cache_doc}
     with (
         patch.dict(elasticsearch_return.__salt__, mock_salt),
         patch.dict(elasticsearch_return.__opts__, {}),
@@ -662,9 +701,12 @@ def test_get_load_with_data(mock_salt, default_options):
     ):
         result = elasticsearch_return.get_load("20230101120000000000")
         mock_salt["elasticsearch.document_get"].assert_called_once_with(
-            index="salt-master-job-cache", id="20230101120000000000"
+            index="salt-master-job-cache", id_="20230101120000000000"
         )
-        assert result == expected_data
+        assert result["fun"] == "test.ping"
+        assert result["tgt"] == "*"
+        assert result["tgt_type"] == "glob"
+        assert result["arg"] == ["timeout=5"]
 
 
 def test_get_load_no_data(mock_salt, default_options):

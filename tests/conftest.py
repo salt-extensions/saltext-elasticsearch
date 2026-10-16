@@ -1,10 +1,63 @@
 import logging
 import os
+import sys
+import types
 
 import pytest
-from saltfactories.utils import random_string
 
-from saltext.elasticsearch import PACKAGE_ROOT
+try:
+    from saltfactories.utils import random_string
+except ImportError:
+    # saltfactories is only needed for the integration test fixtures below;
+    # unit tests do not require it.
+    def random_string(prefix):
+        import uuid
+        return prefix + "-" + str(uuid.uuid4())[:8]
+
+try:
+    from saltext.elasticsearch import PACKAGE_ROOT
+except ImportError:
+    PACKAGE_ROOT = None
+
+# Provide a minimal elasticsearch stub when the real client is not installed,
+# so that the unit tests (which use importorskip) can actually run.
+try:
+    import elasticsearch
+except ImportError:
+    _es_stub = types.ModuleType("elasticsearch")
+    _es_stub.__version__ = (8, 14, 0)
+
+    class TransportError(Exception):
+        errors = {}
+        message = ""
+        status_code = 400
+        error = ""
+
+    class NotFoundError(TransportError):
+        pass
+
+    class ApiError(TransportError):
+        pass
+
+    class BadRequestError(TransportError):
+        pass
+
+    _es_stub.TransportError = TransportError
+    _es_stub.NotFoundError = NotFoundError
+    _es_stub.ApiError = ApiError
+    _es_stub.BadRequestError = BadRequestError
+    _es_stub.Elasticsearch = None
+    _es_stub.exceptions = types.SimpleNamespace(
+        TransportError=TransportError,
+        NotFoundError=NotFoundError,
+        ApiError=ApiError,
+        BadRequestError=BadRequestError,
+    )
+    sys.modules["elasticsearch"] = _es_stub
+
+    _et = types.ModuleType("elastic_transport")
+    _et.RequestsHttpNode = object
+    sys.modules["elastic_transport"] = _et
 
 # Reset the root logger to its default level(because salt changed it)
 logging.root.setLevel(logging.WARNING)

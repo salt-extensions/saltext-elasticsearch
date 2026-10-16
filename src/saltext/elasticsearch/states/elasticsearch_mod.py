@@ -9,6 +9,9 @@ import salt.utils.json
 
 log = logging.getLogger(__name__)
 
+__opts__ = {}
+__salt__ = {}
+
 __virtualname__ = "elasticsearch"
 
 

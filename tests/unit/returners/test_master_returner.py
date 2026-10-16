@@ -6,12 +6,12 @@ These cover ``save_load``, ``get_load``, ``get_jid``, ``get_jids``,
 from the custom returner.
 """
 
-import datetime
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
 import salt.utils.json
+from salt.exceptions import CommandExecutionError
 
 import saltext.elasticsearch.returners.elasticsearch8_mod as elasticsearch_return
 
@@ -63,6 +63,14 @@ def mock_salt():
     }
 
 
+@pytest.fixture(autouse=True)
+def patched_salt(mock_salt):
+    """Inject the mocked __salt__ into the module for the duration of each test."""
+    with patch.dict(elasticsearch_return.__salt__, mock_salt), \
+         patch.object(elasticsearch_return, "__opts__", {}):
+        yield mock_salt
+
+
 @pytest.fixture
 def patched_options(default_options):
     """Patch salt.returners.get_returner_options to return the fixture options."""
@@ -91,7 +99,7 @@ def load():
 # ---------------------------------------------------------------------------
 
 
-def test__make_cache_doc_full(load, patched_options):
+def test__make_cache_doc_full(load):
     """
     The cache doc carries the function, user, target, jid, JSON-encoded
     arguments and both timestamps.
@@ -108,7 +116,7 @@ def test__make_cache_doc_full(load, patched_options):
     assert doc["@timestamp"] == "2026-09-24T12:00:00Z"
 
 
-def test__make_cache_doc_minimal(patched_options):
+def test__make_cache_doc_minimal():
     """
     Loads without user/schedule/tgt_type fall back to the documented defaults.
     """
@@ -120,7 +128,7 @@ def test__make_cache_doc_minimal(patched_options):
     assert doc["Target"] == "minion1"
 
 
-def test__make_cache_doc_prefers_fun_args(patched_options):
+def test__make_cache_doc_prefers_fun_args():
     """
     fun_args wins over arg when both are present in the load.
     """
@@ -310,8 +318,6 @@ def test_get_jid_missing_raises(mock_salt, patched_options, load):
     """
     A jid missing from the master cache raises CommandExecutionError.
     """
-    from salt.exceptions import CommandExecutionError
-
     mock_salt["elasticsearch.document_get"].return_value = None
     with pytest.raises(CommandExecutionError):
         elasticsearch_return.get_jid("missing-jid")
@@ -351,7 +357,7 @@ def test_get_jids_empty(mock_salt, patched_options):
     """
     An empty cache index yields no jobs.
     """
-    assert elasticsearch_return.get_jids() == {}
+    assert not elasticsearch_return.get_jids()
 
 
 # ---------------------------------------------------------------------------

@@ -97,15 +97,13 @@ Minion configuration:
 import datetime
 import logging
 import uuid
-
 from datetime import timedelta
 from datetime import tzinfo
-from salt.exceptions import CommandExecutionError
 
 import salt.returners
 import salt.utils.jid
 import salt.utils.json
-
+from salt.exceptions import CommandExecutionError
 
 JOB_QUERY="""
 {
@@ -311,31 +309,37 @@ class UTC(tzinfo):
 
 def _load_modules_ssh(__salt__):
     loaded = False
+    # pylint: disable=import-outside-toplevel
     import salt.modules.config
-    for f in ["elasticsearch.index_exists", 
-                "elasticsearch.index_create", 
-                "elasticsearch.alias_create", 
+    for f in ["elasticsearch.index_exists",
+                "elasticsearch.index_create",
+                "elasticsearch.alias_create",
                 "elasticsearch.alias_exists",
                 "elasticsearch.alias_delete",
-                "elasticsearch.document_create", 
-                "elasticsearch.document_exists", 
-                "elasticsearch.document_get", 
+                "elasticsearch.document_create",
+                "elasticsearch.document_exists",
+                "elasticsearch.document_get",
                 "elasticsearch.document_get_all",
                 "elasticsearch.document_update",
                 "elasticsearch.search"]:
         if f not in __salt__:
             if not loaded:
+                # pylint: disable=import-outside-toplevel
                 import saltext.elasticsearch.modules.elasticsearch8_mod
                 loaded = True
                 saltext.elasticsearch.modules.elasticsearch8_mod.__salt__ = __salt__
+            # pylint: disable=eval-used
             __salt__[f] = eval(f"saltext.elasticsearch.modules.elasticsearch8_mod.{f.split('.')[1]}")
-    __salt__["config.option"] = salt.modules.config.option 
+    if "config.option" not in __salt__:
+        __salt__["config.option"] = salt.modules.config.option
 
 
 try:
+    # pylint: disable=import-outside-toplevel
     try:
-        import elasticsearch8 as elasticsearch
+        import elasticsearch8 as elasticsearch  # pylint: disable=import-outside-toplevel
     except ImportError:
+        # pylint: disable=import-outside-toplevel
         import elasticsearch
 
     HAS_ELASTICSEARCH = True
@@ -347,6 +351,12 @@ except ImportError:
     ES_MAJOR_VERSION = 0
 
 __virtualname__ = "elasticsearch"
+
+# Salt dunders; populated by the salt loader, initialized as empty defaults
+# so that the module is importable outside the loader (tests).
+__salt__ = {}
+__opts__ = {}
+grains = {}
 
 log = logging.getLogger(__name__)
 
@@ -419,14 +429,14 @@ def _get_options(ret=None):
            __grains__=grains,
            defaults=defaults,
         )
-    except Exception as err:
+    except Exception as err:  # pylint: disable=broad-exception-caught
         log.debug(f"Exception getting options {err}")
         _options = defaults
         try:
             _options.update(__opts__['elasticsearch'])
-        except Exception:
-            log.debug(f"__opts__['elasticsearch'] not defined, setting options to default'")
- 
+        except Exception:  # pylint: disable=broad-exception-caught
+            log.debug("__opts__['elasticsearch'] not defined, setting options to default'")
+
     if _options["dev"]:
         _options["master_job_cache_index"] = f"dev-{_options['master_job_cache_index']}"
 
@@ -461,14 +471,11 @@ def _ensure_index(index):
 
         try:
             __salt__["elasticsearch.index_create"](index=f"{index}-v2", settings=index_definition, mappings=mapping)
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
-        try:
-            if  __salt__["elasticsearch.alias_exists"](indices=f"{index}-v1", aliases=index):
-                __salt__["elasticsearch.alias_delete"](indices=f"{index}-v1", aliases=index)
-            __salt__["elasticsearch.alias_create"](indices=f"{index}-v2", alias=index)
-        except Exception:
-            raise
+        if  __salt__["elasticsearch.alias_exists"](indices=f"{index}-v1", aliases=index):
+            __salt__["elasticsearch.alias_delete"](indices=f"{index}-v1", aliases=index)
+        __salt__["elasticsearch.alias_create"](indices=f"{index}-v2", alias=index)
 
 
 def _convert_keys(data):
@@ -494,12 +501,11 @@ def _convert_keys(data):
 
 
 def returner(ret):
-    log.debug(f"running returner")
+    log.debug("running returner")
     log.trace(f"for {ret}")
     """
     Process the return from Salt
     """
-
     job_fun = ret["fun"]
     job_fun_args = salt.utils.json.dumps(ret["fun_args"]) if "fun_args" in ret else []
     job_id = ret["jid"]
@@ -524,6 +530,8 @@ def returner(ret):
             job_id,
         )
         return
+    if ret.get("return") is None and ret.get("data") is not None:
+        ret["return"] = ret["data"]
 
     # Build the index name
     if options["states_single_index"] and job_fun in STATE_FUNCTIONS:
@@ -553,7 +561,7 @@ def returner(ret):
             index = f"{index}-ordered"
             max_chars = len(str(len(ret["return"])))
 
-            for uid, data in ret["return"].items():
+            for uid, data in list(ret["return"].items()):
                 # Skip keys we've already prefixed
                 if uid.startswith(tuple("0123456789")):
                     continue
@@ -587,7 +595,7 @@ def returner(ret):
     # Ensure the index exists
     try:
         _ensure_index(index)
-    except Exception as err:
+    except Exception as err:  # pylint: disable=broad-exception-caught
         error_string = str(err)
         if 'resource_already_exists_exception' in error_string or 'invalid_alias_name_exception' in error_string:
             log.debug(f"returner index {index} creation failed because it already exists")
@@ -637,11 +645,11 @@ def event_return(events):
     for event in events:
         data = {"tag": event.get("tag", ""), "data": event.get("data", "")}
 
-    __salt__["elasticsearch.document_create"](
-        index=index,
-        id_=uuid.uuid4(),
-        document=salt.utils.json.dumps(data),
-    )
+        __salt__["elasticsearch.document_create"](
+            index=index,
+            id_=uuid.uuid4(),
+            document=salt.utils.json.dumps(data),
+        )
 
 
 def prep_jid(nocache=False, passed_jid=None):  # pylint: disable=unused-argument
@@ -654,7 +662,7 @@ def prep_jid(nocache=False, passed_jid=None):  # pylint: disable=unused-argument
 
 
 def _make_cache_doc(load, jid):
-    log.debug(f"_make_cache_doc starting")
+    log.debug("_make_cache_doc starting")
     load_args = None
     for arg in ['arg', 'fun_args', 'fun_arg']:
         if arg in load:
@@ -721,7 +729,7 @@ def save_load(jid, load, minions=None):
                 log.debug(f"save_load adding {mid} for {load['cmd']}")
                 try:
                     __salt__["elasticsearch.document_update"](index=index, id_=jid, body=_add_minion_to_doc(mid), retry_on_conflict=retries)
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-exception-caught
                     log.error(f"non-fatal error {e} adding {mid} to {load['cmd']} for {jid}")
             else:
                 add_to_cache = True
@@ -729,7 +737,7 @@ def save_load(jid, load, minions=None):
             log.debug(f"save_load cmd in load but it is neither _return nor publish {jid}: {load['cmd']}")
             log.trace(f"save_load load {load}")
     else:
-        log.debug(f"save_load cmd not in load, attempting to load job to cache")
+        log.debug("save_load cmd not in load, attempting to load job to cache")
         if 'jid' in load:
             jid = load['jid']
             if not job_in_cache:
@@ -738,7 +746,7 @@ def save_load(jid, load, minions=None):
                 log.debug(f"save_load skipping {jid} for {index} because it already exists")
 
         else:
-            log.debug(f"save_load no jid to upload")
+            log.debug("save_load no jid to upload")
             log.trace(f"save_load load {load}")
 
     if add_to_cache:
@@ -763,12 +771,12 @@ def get_load(jid):
     index = options["master_job_cache_index"]
 
     data = __salt__["elasticsearch.document_get"](index=index, id_=jid)
-    log.debug(f"get_load found results")
+    log.debug("get_load found results")
     log.trace(f"get_load data {data}")
     if isinstance(data, str):
         return salt.utils.json.loads(data)
     elif isinstance(data, dict):
-        log.debug(f"get_load mapping data")
+        log.debug("get_load mapping data")
         data["_source"]["tgt"] = data['_source']["Target"]
         data["_source"]["tgt_type"] = data['_source']["Target-type"]
         data["_source"]["fun"] = data['_source']["Function"]
@@ -777,7 +785,7 @@ def get_load(jid):
         log.trace(f"data {data}")
         return data["_source"]
     else:
-        log.debug(f"get_load got data that is neither a string nor a dict")
+        log.debug("get_load got data that is neither a string nor a dict")
     return {}
 
 def get_jid(jid):
@@ -793,18 +801,18 @@ def get_jid(jid):
     data = __salt__["elasticsearch.document_get"](index=index, id_=jid, source_excludes=["_index", "_primary_term", "version", "found", "_seq_no"])
     if not data:
         raise CommandExecutionError(f"Job {jid} does not exist")
-    log.debug(f"get_jid fetched data")
+    log.debug("get_jid fetched data")
     log.trace(f"get_jid data {data}")
     fun = data['_source']['Function']
     job_index =  _get_index_name(fun, options["dev"])
 
     query = JOB_QUERY.replace("JID", jid)
-    log.debug(f"get_jid index: {job_index} built job query") 
+    log.debug(f"get_jid index: {job_index} built job query")
     log.trace(f"get_jid query {query}")
 
     try:
         job_data = __salt__["elasticsearch.search"](index=job_index, body=query, size=10000, source_excludes=[ "@timestamp", "counts", "fun", "jid", "fun_args", "fun_kwargs"])
-        log.debug(f"get_jid fetched job data")
+        log.debug("get_jid fetched job data")
         log.trace(f"get_jid job data: {job_data}")
         if isinstance(data, str):
             return salt.utils.json.loads(data)
@@ -815,12 +823,12 @@ def get_jid(jid):
                 ret[mid] = j['_source']
                 try:
                     ret[mid] = salt.utils.json.loads(ret[mid]['data'])
-                except:
-                    log.debug(f"get_jid error deserializing data")
+                except Exception:  # pylint: disable=broad-exception-caught
+                    log.debug("get_jid error deserializing data")
                     log.trace(f"get_jid data {ret[mid]['data']}")
-    except Exception as err:
+    except Exception as err:  # pylint: disable=broad-exception-caught
         log.debug(f"get_jid error running search {err}")
-       
+
     return ret
 
 def get_jids():
@@ -829,14 +837,14 @@ def get_jids():
 
     .. versionadded:: 2015.8.1
     """
-    log.debug(f"running get_jids")
+    log.debug("running get_jids")
     options = _get_options()
     jobs = {}
     index = options["master_job_cache_index"]
 
     data = __salt__["elasticsearch.document_get_all"](index=index, source_excludes=["_index", "_score", "max_score", "total", "hits._index", "@timestamp"])
     if isinstance(data, str):
-        log.debug(f"get_jids found string data")
+        log.debug("get_jids found string data")
         data =  salt.utils.json.loads(data)
     for job in data['hits']:
        try:
@@ -848,7 +856,7 @@ def get_jids():
            if 'KeywordArgs' in job['_source']:
                job["_source"]["KeywordArgs"] = salt.utils.json.loads(job["_source"]["KeywordArgs"])
            jobs[jid] = job["_source"]
-       except Exception as err:
+       except Exception as err:  # pylint: disable=broad-exception-caught
           log.debug(f"failed to fetch job data: {job} error: {err}")
 
     return jobs

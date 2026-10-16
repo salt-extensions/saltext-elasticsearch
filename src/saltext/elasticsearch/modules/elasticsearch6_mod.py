@@ -607,6 +607,7 @@ def document_exists(index, id=None, id_=None, doc_type="_all", hosts=None, profi
         )
 
 
+# pylint: disable=unused-argument
 def document_get(index, id=None, id_=None, doc_type="_all", hosts=None, profile=None, source_excludes=None):
     """
     Check for the existence of a document and if it exists, return it
@@ -674,6 +675,7 @@ def document_update(index, id_=None, body=None, hosts=None, profile=None, source
         )
 
 
+# pylint: disable=unused-argument
 def document_get_all(index, source_excludes=None, hosts=None, profile=None):
     """
     Get all documents in an index
