@@ -497,7 +497,17 @@ def alias_get(indices=None, aliases=None, hosts=None, profile=None):
         )
 
 
-def document_create(index, doc_type=None, body=None, id=None, id_=None, document=None, hosts=None, profile=None, source=None):
+def document_create(
+    index,
+    doc_type=None,
+    body=None,
+    id=None,
+    id_=None,
+    document=None,
+    hosts=None,
+    profile=None,
+    source=None,
+):
     """
     Create a document in a specified index
 
@@ -608,7 +618,9 @@ def document_exists(index, id=None, id_=None, doc_type="_all", hosts=None, profi
 
 
 # pylint: disable=unused-argument
-def document_get(index, id=None, id_=None, doc_type="_all", hosts=None, profile=None, source_excludes=None):
+def document_get(
+    index, id=None, id_=None, doc_type="_all", hosts=None, profile=None, source_excludes=None
+):
     """
     Check for the existence of a document and if it exists, return it
 
@@ -696,7 +708,11 @@ def document_get_all(index, source_excludes=None, hosts=None, profile=None):
     try:
         return es.search(
             index=index,
-            body={"size": 10000, "sort": [{"@timestamp": {"order": "desc"}}], "query": {"match_all": {}}},
+            body={
+                "size": 10000,
+                "sort": [{"@timestamp": {"order": "desc"}}],
+                "query": {"match_all": {}},
+            },
         )["hits"]
     except elasticsearch.exceptions.NotFoundError:
         return None
@@ -707,7 +723,9 @@ def document_get_all(index, source_excludes=None, hosts=None, profile=None):
         )
 
 
-def search(index=None, body=None, size=None, q=None, hosts=None, profile=None, source_excludes=None):
+def search(
+    index=None, body=None, size=None, q=None, hosts=None, profile=None, source_excludes=None
+):
     """
     Run an Elasticsearch query and return the raw result
 
@@ -748,7 +766,9 @@ def search(index=None, body=None, size=None, q=None, hosts=None, profile=None, s
         )
 
 
-def index_create(index, body=None, settings=None, mappings=None, hosts=None, profile=None, source=None):
+def index_create(
+    index, body=None, settings=None, mappings=None, hosts=None, profile=None, source=None
+):
     """
     Create an index
 

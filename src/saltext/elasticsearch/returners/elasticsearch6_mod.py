@@ -105,7 +105,7 @@ import salt.utils.jid
 import salt.utils.json
 from salt.exceptions import CommandExecutionError
 
-JOB_QUERY="""
+JOB_QUERY = """
 {
     "query": {
         "match": {
@@ -115,7 +115,7 @@ JOB_QUERY="""
     "size": 10000
 }
 """
-MINION_QUERY="""
+MINION_QUERY = """
 {
   "size": 0,
   "aggs": {
@@ -128,7 +128,7 @@ MINION_QUERY="""
   }
 }
 """
-FUNCTION_QUERY="""
+FUNCTION_QUERY = """
 {
   "size": 1,
   "sort": [
@@ -144,158 +144,37 @@ FUNCTION_QUERY="""
 }
 """
 
-RETURN_MAPPING={
-    "@timestamp": {
-        "type": "date"
-    },
-    "counts": {
-        "type": "object"
-    },
-    "data": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
-    "fun": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
-    "Function.keyword": {
-        "type": "alias",
-        "path": "fun.keyword"
-    },
-    "fun_args": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
-    "Arguments.keyword": {
-        "type": "alias",
-        "path": "fun_args.keyword"
-    },
-    "jid": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
-    "minion": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
-    "Minions.keyword": {
-        "type": "alias",
-        "path": "minion.keyword"
-    },
-    "retcode": {
-            "type": "long"
-    },
-    "success": {
-        "type": "boolean"
-    }
+RETURN_MAPPING = {
+    "@timestamp": {"type": "date"},
+    "counts": {"type": "object"},
+    "data": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
+    "fun": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
+    "Function.keyword": {"type": "alias", "path": "fun.keyword"},
+    "fun_args": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
+    "Arguments.keyword": {"type": "alias", "path": "fun_args.keyword"},
+    "jid": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
+    "minion": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
+    "Minions.keyword": {"type": "alias", "path": "minion.keyword"},
+    "retcode": {"type": "long"},
+    "success": {"type": "boolean"},
 }
 
-MASTER_MAPPING={
-    "@timestamp": {
-        "type": "date"
-    },
-    "Arguments": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
-    "Function": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
-    "Minions": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
-    "Schedule": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
-    "StartTime": {
-        "type": "date"
-    },
-    "Target": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
+MASTER_MAPPING = {
+    "@timestamp": {"type": "date"},
+    "Arguments": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
+    "Function": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
+    "Minions": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
+    "Schedule": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
+    "StartTime": {"type": "date"},
+    "Target": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
     "Target-type": {
         "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
+        "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
     },
-    "User": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    },
-    "jid": {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-            }
-        }
-    }
+    "User": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
+    "jid": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
 }
+
 
 class UTC(tzinfo):
     def utcoffset(self, _dt):
@@ -307,29 +186,36 @@ class UTC(tzinfo):
     def dst(self, _dt):
         return timedelta(0)
 
+
 def _load_modules_ssh(__salt__):
     loaded = False
     # pylint: disable=import-outside-toplevel
     import salt.modules.config
-    for f in ["elasticsearch.index_exists",
-                "elasticsearch.index_create",
-                "elasticsearch.alias_create",
-                "elasticsearch.alias_exists",
-                "elasticsearch.alias_delete",
-                "elasticsearch.document_create",
-                "elasticsearch.document_exists",
-                "elasticsearch.document_get",
-                "elasticsearch.document_get_all",
-                "elasticsearch.document_update",
-                "elasticsearch.search"]:
+
+    for f in [
+        "elasticsearch.index_exists",
+        "elasticsearch.index_create",
+        "elasticsearch.alias_create",
+        "elasticsearch.alias_exists",
+        "elasticsearch.alias_delete",
+        "elasticsearch.document_create",
+        "elasticsearch.document_exists",
+        "elasticsearch.document_get",
+        "elasticsearch.document_get_all",
+        "elasticsearch.document_update",
+        "elasticsearch.search",
+    ]:
         if f not in __salt__:
             if not loaded:
                 # pylint: disable=import-outside-toplevel
                 import saltext.elasticsearch.modules.elasticsearch6_mod
+
                 loaded = True
                 saltext.elasticsearch.modules.elasticsearch6_mod.__salt__ = __salt__
             # pylint: disable=eval-used
-            __salt__[f] = eval(f"saltext.elasticsearch.modules.elasticsearch6_mod.{f.split('.')[1]}")
+            __salt__[f] = eval(
+                f"saltext.elasticsearch.modules.elasticsearch6_mod.{f.split('.')[1]}"
+            )
     if "config.option" not in __salt__:
         __salt__["config.option"] = salt.modules.config.option
 
@@ -418,18 +304,18 @@ def _get_options(ret=None):
     try:
         _options = salt.returners.get_returner_options(
             __virtualname__,
-           ret,
-           attrs,
-           __salt__=__salt__,
-           __opts__=__opts__,
-           __grains__=grains,
-           defaults=defaults,
+            ret,
+            attrs,
+            __salt__=__salt__,
+            __opts__=__opts__,
+            __grains__=grains,
+            defaults=defaults,
         )
     except Exception as err:  # pylint: disable=broad-exception-caught
         log.debug(f"Exception getting options {err}")
         _options = defaults
         try:
-            _options.update(__opts__['elasticsearch'])
+            _options.update(__opts__["elasticsearch"])
         except Exception:  # pylint: disable=broad-exception-caught
             log.debug("__opts__['elasticsearch'] not defined, setting options to default'")
 
@@ -458,18 +344,20 @@ def _ensure_index(index):
         index_definition = {
             "number_of_shards": options["number_of_shards"],
             "number_of_replicas": options["number_of_replicas"],
-            "index.mapping.ignore_malformed": True
+            "index.mapping.ignore_malformed": True,
         }
-        if 'master' not in index:
-            mapping={"properties": RETURN_MAPPING}
+        if "master" not in index:
+            mapping = {"properties": RETURN_MAPPING}
         else:
-            mapping={"properties": MASTER_MAPPING}
+            mapping = {"properties": MASTER_MAPPING}
 
         try:
-            __salt__["elasticsearch.index_create"](index=f"{index}-v2", settings=index_definition, mappings=mapping)
+            __salt__["elasticsearch.index_create"](
+                index=f"{index}-v2", settings=index_definition, mappings=mapping
+            )
         except Exception:  # pylint: disable=broad-exception-caught
             pass
-        if  __salt__["elasticsearch.alias_exists"](indices=f"{index}-v1", aliases=index):
+        if __salt__["elasticsearch.alias_exists"](indices=f"{index}-v1", aliases=index):
             __salt__["elasticsearch.alias_delete"](indices=f"{index}-v1", aliases=index)
         __salt__["elasticsearch.alias_create"](indices=f"{index}-v2", alias=index)
 
@@ -497,11 +385,11 @@ def _convert_keys(data):
 
 
 def returner(ret):
-    log.debug("running returner")
-    log.trace(f"for {ret}")
     """
     Process the return from Salt
     """
+    log.debug("running returner")
+    log.trace(f"for {ret}")
     job_fun = ret["fun"]
     job_fun_args = salt.utils.json.dumps(ret["fun_args"]) if "fun_args" in ret else []
     job_id = ret["jid"]
@@ -593,7 +481,10 @@ def returner(ret):
         _ensure_index(index)
     except Exception as err:  # pylint: disable=broad-exception-caught
         error_string = str(err)
-        if 'resource_already_exists_exception' in error_string or 'invalid_alias_name_exception' in error_string:
+        if (
+            "resource_already_exists_exception" in error_string
+            or "invalid_alias_name_exception" in error_string
+        ):
             log.debug(f"returner index {index} creation failed because it already exists")
         else:
             raise
@@ -623,12 +514,12 @@ def returner(ret):
 
 
 def event_return(events):
-    log.debug(f"running event_return for {events}")
     """
     Return events to Elasticsearch
 
     Requires that the `event_return` configuration be set in master config.
     """
+    log.debug(f"running event_return for {events}")
     options = _get_options()
 
     index = options["master_event_index"]
@@ -656,28 +547,26 @@ def prep_jid(nocache=False, passed_jid=None):  # pylint: disable=unused-argument
     return passed_jid if passed_jid is not None else salt.utils.jid.gen_jid(__opts__)
 
 
-
 def _make_cache_doc(load, jid):
     log.debug("_make_cache_doc starting")
     load_args = None
-    for arg in ['arg', 'fun_args', 'fun_arg']:
+    for arg in ["arg", "fun_args", "fun_arg"]:
         if arg in load:
             log.debug(f"prep_jid {arg} found")
             load_args = salt.utils.json.dumps(load[arg])
     doc = {
-        "Function": load['fun'],
-        "User": load['user'] if 'user' in load else 'salt',
-        "Schedule": load['schedule'] if 'schedule' in load else None,
-        "Target-type": load['tgt_type'] if 'tgt_type' in load else None,
-        "Target":  load['tgt'],
+        "Function": load["fun"],
+        "User": load["user"] if "user" in load else "salt",
+        "Schedule": load["schedule"] if "schedule" in load else None,
+        "Target-type": load["tgt_type"] if "tgt_type" in load else None,
+        "Target": load["tgt"],
         "jid": jid,
         "Arguments": load_args,
-        "StartTime": load['_stamp'],
-        "@timestamp": load['_stamp']
+        "StartTime": load["_stamp"],
+        "@timestamp": load["_stamp"],
     }
 
     return doc
-
 
 
 def _add_minion_to_doc(mid):
@@ -685,13 +574,9 @@ def _add_minion_to_doc(mid):
         "script": {
             "source": "if (ctx._source.containsKey('Minions')) { ctx._source.Minions.add(params.minion) } else { ctx._source.Minions = [params.minion] }",
             "lang": "painless",
-            "params": {
-                "minion": mid
-            }
+            "params": {"minion": mid},
         },
-        "upsert": {
-            "Minion": [mid]
-        }
+        "upsert": {"Minion": [mid]},
     }
 
 
@@ -716,26 +601,33 @@ def save_load(jid, load, minions=None):
     if "_stamp" not in load:
         load["_stamp"] = datetime.datetime.now(utc).isoformat()
 
-    if 'cmd' in load:
-        if load['cmd'] == 'publish':
+    if "cmd" in load:
+        if load["cmd"] == "publish":
             add_to_cache = True
-        elif load['cmd'] == "_return":
-            mid = load['id']
+        elif load["cmd"] == "_return":
+            mid = load["id"]
             if job_in_cache:
                 log.debug(f"save_load adding {mid} for {load['cmd']}")
                 try:
-                    __salt__["elasticsearch.document_update"](index=index, id_=jid, body=_add_minion_to_doc(mid), retry_on_conflict=retries)
+                    __salt__["elasticsearch.document_update"](
+                        index=index,
+                        id_=jid,
+                        body=_add_minion_to_doc(mid),
+                        retry_on_conflict=retries,
+                    )
                 except Exception as e:  # pylint: disable=broad-exception-caught
                     log.error(f"non-fatal error {e} adding {mid} to {load['cmd']} for {jid}")
             else:
                 add_to_cache = True
         else:
-            log.debug(f"save_load cmd in load but it is neither _return nor publish {jid}: {load['cmd']}")
+            log.debug(
+                f"save_load cmd in load but it is neither _return nor publish {jid}: {load['cmd']}"
+            )
             log.trace(f"save_load load {load}")
     else:
         log.debug("save_load cmd not in load, attempting to load job to cache")
-        if 'jid' in load:
-            jid = load['jid']
+        if "jid" in load:
+            jid = load["jid"]
             if not job_in_cache:
                 add_to_cache = True
             else:
@@ -752,7 +644,6 @@ def save_load(jid, load, minions=None):
         __salt__["elasticsearch.document_create"](
             index=index, id_=jid, document=salt.utils.json.dumps(doc)
         )
-
 
 
 def get_load(jid):
@@ -773,16 +664,17 @@ def get_load(jid):
         return salt.utils.json.loads(data)
     elif isinstance(data, dict):
         log.debug("get_load mapping data")
-        data["_source"]["tgt"] = data['_source']["Target"]
-        data["_source"]["tgt_type"] = data['_source']["Target-type"]
-        data["_source"]["fun"] = data['_source']["Function"]
-        data["_source"]["user"] = data['_source']["User"]
-        data["_source"]["arg"] = salt.utils.json.loads(data['_source']["Arguments"])
+        data["_source"]["tgt"] = data["_source"]["Target"]
+        data["_source"]["tgt_type"] = data["_source"]["Target-type"]
+        data["_source"]["fun"] = data["_source"]["Function"]
+        data["_source"]["user"] = data["_source"]["User"]
+        data["_source"]["arg"] = salt.utils.json.loads(data["_source"]["Arguments"])
         log.trace(f"data {data}")
         return data["_source"]
     else:
         log.debug("get_load got data that is neither a string nor a dict")
     return {}
+
 
 def get_jid(jid):
     """
@@ -794,31 +686,40 @@ def get_jid(jid):
     options = _get_options()
     ret = {}
     index = options["master_job_cache_index"]
-    data = __salt__["elasticsearch.document_get"](index=index, id_=jid, source_excludes=["_index", "_primary_term", "version", "found", "_seq_no"])
+    data = __salt__["elasticsearch.document_get"](
+        index=index,
+        id_=jid,
+        source_excludes=["_index", "_primary_term", "version", "found", "_seq_no"],
+    )
     if not data:
         raise CommandExecutionError(f"Job {jid} does not exist")
     log.debug("get_jid fetched data")
     log.trace(f"get_jid data {data}")
-    fun = data['_source']['Function']
-    job_index =  _get_index_name(fun, options["dev"])
+    fun = data["_source"]["Function"]
+    job_index = _get_index_name(fun, options["dev"])
 
     query = JOB_QUERY.replace("JID", jid)
     log.debug(f"get_jid index: {job_index} built job query")
     log.trace(f"get_jid query {query}")
 
     try:
-        job_data = __salt__["elasticsearch.search"](index=job_index, body=query, size=10000, source_excludes=[ "@timestamp", "counts", "fun", "jid", "fun_args", "fun_kwargs"])
+        job_data = __salt__["elasticsearch.search"](
+            index=job_index,
+            body=query,
+            size=10000,
+            source_excludes=["@timestamp", "counts", "fun", "jid", "fun_args", "fun_kwargs"],
+        )
         log.debug("get_jid fetched job data")
         log.trace(f"get_jid job data: {job_data}")
         if isinstance(data, str):
             return salt.utils.json.loads(data)
         elif isinstance(data, dict):
             log.debug(f"get_jid fetched {len(job_data['hits']['hits'])} results")
-            for j in job_data['hits']['hits']:
-                mid = j['_source'].pop('minion')
-                ret[mid] = j['_source']
+            for j in job_data["hits"]["hits"]:
+                mid = j["_source"].pop("minion")
+                ret[mid] = j["_source"]
                 try:
-                    ret[mid] = salt.utils.json.loads(ret[mid]['data'])
+                    ret[mid] = salt.utils.json.loads(ret[mid]["data"])
                 except Exception:  # pylint: disable=broad-exception-caught
                     log.debug("get_jid error deserializing data")
                     log.trace(f"get_jid data {ret[mid]['data']}")
@@ -826,6 +727,7 @@ def get_jid(jid):
         log.debug(f"get_jid error running search {err}")
 
     return ret
+
 
 def get_jids():
     """
@@ -838,32 +740,37 @@ def get_jids():
     jobs = {}
     index = options["master_job_cache_index"]
 
-    data = __salt__["elasticsearch.document_get_all"](index=index, source_excludes=["_index", "_score", "max_score", "total", "hits._index", "@timestamp"])
+    data = __salt__["elasticsearch.document_get_all"](
+        index=index,
+        source_excludes=["_index", "_score", "max_score", "total", "hits._index", "@timestamp"],
+    )
     if isinstance(data, str):
         log.debug("get_jids found string data")
-        data =  salt.utils.json.loads(data)
-    for job in data['hits']:
-       try:
-           jid = job['_source'].pop('jid')
-           if 'Minions' in job['_source']:
-               del job['_source']['Minions']
-           if 'Arguments' in job['_source']:
-               job["_source"]["Arguments"] = salt.utils.json.loads(job["_source"]["Arguments"])
-           if 'KeywordArgs' in job['_source']:
-               job["_source"]["KeywordArgs"] = salt.utils.json.loads(job["_source"]["KeywordArgs"])
-           jobs[jid] = job["_source"]
-       except Exception as err:  # pylint: disable=broad-exception-caught
-          log.debug(f"failed to fetch job data: {job} error: {err}")
+        data = salt.utils.json.loads(data)
+    for job in data["hits"]:
+        try:
+            jid = job["_source"].pop("jid")
+            if "Minions" in job["_source"]:
+                del job["_source"]["Minions"]
+            if "Arguments" in job["_source"]:
+                job["_source"]["Arguments"] = salt.utils.json.loads(job["_source"]["Arguments"])
+            if "KeywordArgs" in job["_source"]:
+                job["_source"]["KeywordArgs"] = salt.utils.json.loads(job["_source"]["KeywordArgs"])
+            jobs[jid] = job["_source"]
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            log.debug(f"failed to fetch job data: {job} error: {err}")
 
     return jobs
+
 
 def get_fun(fun):
     log.debug(f"running get_fun for {fun}")
     options = _get_options()
-    index =  _get_index_name(fun, options["dev"])
+    index = _get_index_name(fun, options["dev"])
     query = FUNCTION_QUERY
     data = __salt__["elasticsearch.search"](index=index, body=query, size=10000)
-    return data['hits']['hits']
+    return data["hits"]["hits"]
+
 
 def get_minions():
     log.debug("running get_minions")
@@ -871,5 +778,4 @@ def get_minions():
     index = options["master_job_cache_index"]
     query = MINION_QUERY
     data = __salt__["elasticsearch.search"](index=index, body=query, size=10000)
-    return [m['key'] for m in  data['aggregations']['unique_field_values']['buckets']]
-
+    return [m["key"] for m in data["aggregations"]["unique_field_values"]["buckets"]]

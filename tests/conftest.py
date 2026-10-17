@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import types
+import uuid
 
 import pytest
 
@@ -11,8 +12,8 @@ except ImportError:
     # saltfactories is only needed for the integration test fixtures below;
     # unit tests do not require it.
     def random_string(prefix):
-        import uuid
         return prefix + "-" + str(uuid.uuid4())[:8]
+
 
 try:
     from saltext.elasticsearch import PACKAGE_ROOT
@@ -22,7 +23,7 @@ except ImportError:
 # Provide a minimal elasticsearch stub when the real client is not installed,
 # so that the unit tests (which use importorskip) can actually run.
 try:
-    import elasticsearch
+    import elasticsearch  # pylint: disable=unused-import
 except ImportError:
     _es_stub = types.ModuleType("elasticsearch")
     _es_stub.__version__ = (8, 14, 0)

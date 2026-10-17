@@ -66,8 +66,10 @@ def mock_salt():
 @pytest.fixture(autouse=True)
 def patched_salt(mock_salt):
     """Inject the mocked __salt__ into the module for the duration of each test."""
-    with patch.dict(elasticsearch_return.__salt__, mock_salt), \
-         patch.object(elasticsearch_return, "__opts__", {}):
+    with (
+        patch.dict(elasticsearch_return.__salt__, mock_salt),
+        patch.object(elasticsearch_return, "__opts__", {}),
+    ):
         yield mock_salt
 
 
@@ -132,8 +134,13 @@ def test__make_cache_doc_prefers_fun_args():
     """
     fun_args wins over arg when both are present in the load.
     """
-    load = {"fun": "test.ping", "tgt": "*", "arg": ["a"], "fun_args": ["b"],
-            "_stamp": "2026-09-24T12:00:00Z"}
+    load = {
+        "fun": "test.ping",
+        "tgt": "*",
+        "arg": ["a"],
+        "fun_args": ["b"],
+        "_stamp": "2026-09-24T12:00:00Z",
+    }
     doc = elasticsearch_return._make_cache_doc(load, "20260924120000000002")
     assert salt.utils.json.loads(doc["Arguments"]) == ["b"]
 
@@ -218,8 +225,13 @@ def test_save_load_no_cmd_new_jid(mock_salt, patched_options, load):
     """
     Loads without cmd and a fresh jid are added to the cache.
     """
-    plain = {"fun": "test.ping", "jid": load["jid"], "tgt": "*", "tgt_type": "glob",
-             "_stamp": "2026-09-24T12:00:00Z"}
+    plain = {
+        "fun": "test.ping",
+        "jid": load["jid"],
+        "tgt": "*",
+        "tgt_type": "glob",
+        "_stamp": "2026-09-24T12:00:00Z",
+    }
     elasticsearch_return.save_load(plain["jid"], plain)
     mock_salt["elasticsearch.document_create"].assert_called_once()
 
@@ -228,8 +240,13 @@ def test_save_load_no_cmd_existing_jid(mock_salt, patched_options, load):
     """
     Loads without cmd whose jid is already cached are skipped.
     """
-    plain = {"fun": "test.ping", "jid": load["jid"], "tgt": "*", "tgt_type": "glob",
-             "_stamp": "2026-09-24T12:00:00Z"}
+    plain = {
+        "fun": "test.ping",
+        "jid": load["jid"],
+        "tgt": "*",
+        "tgt_type": "glob",
+        "_stamp": "2026-09-24T12:00:00Z",
+    }
     mock_salt["elasticsearch.document_exists"].return_value = True
     elasticsearch_return.save_load(plain["jid"], plain)
     mock_salt["elasticsearch.document_create"].assert_not_called()
@@ -302,10 +319,18 @@ def test_get_jid_returns_minion_returns(mock_salt, patched_options, load):
     """
     mock_salt["elasticsearch.document_get"].return_value = _cache_doc_stub(load)
     mock_salt["elasticsearch.search"].return_value = {
-        "hits": {"hits": [
-            {"_source": {"minion": "minion1", "data": salt.utils.json.dumps({"return": True})}},
-            {"_source": {"minion": "minion2", "data": salt.utils.json.dumps({"return": "ret"})}},
-        ]}}
+        "hits": {
+            "hits": [
+                {"_source": {"minion": "minion1", "data": salt.utils.json.dumps({"return": True})}},
+                {
+                    "_source": {
+                        "minion": "minion2",
+                        "data": salt.utils.json.dumps({"return": "ret"}),
+                    }
+                },
+            ]
+        }
+    }
 
     ret = elasticsearch_return.get_jid(load["jid"])
     assert ret == {"minion1": {"return": True}, "minion2": {"return": "ret"}}
@@ -343,8 +368,7 @@ def test_get_jids_lists_cached_jobs(mock_salt, patched_options, load):
     """
     cache_doc = elasticsearch_return._make_cache_doc(load, load["jid"])
     cache_doc["Minions"] = ["minion1"]
-    mock_salt["elasticsearch.document_get_all"].return_value = {
-        "hits": [{"_source": cache_doc}]}
+    mock_salt["elasticsearch.document_get_all"].return_value = {"hits": [{"_source": cache_doc}]}
 
     jobs = elasticsearch_return.get_jids()
     assert list(jobs) == ["20260924120000000000"]
@@ -383,10 +407,15 @@ def test_get_minions_returns_keys(mock_salt, patched_options):
     get_minions extracts the aggregation bucket keys.
     """
     mock_salt["elasticsearch.search"].return_value = {
-        "aggregations": {"unique_field_values": {"buckets": [
-            {"key": "minion1", "doc_count": 3},
-            {"key": "minion2", "doc_count": 1},
-        ]}}}
+        "aggregations": {
+            "unique_field_values": {
+                "buckets": [
+                    {"key": "minion1", "doc_count": 3},
+                    {"key": "minion2", "doc_count": 1},
+                ]
+            }
+        }
+    }
 
     ret = elasticsearch_return.get_minions()
     assert ret == ["minion1", "minion2"]

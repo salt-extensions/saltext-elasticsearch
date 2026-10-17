@@ -1324,7 +1324,11 @@ def document_get_all(
         return elastic.search(
             index=index,
             source_excludes=source_excludes,
-            body={"size": 10000, "sort": [{"@timestamp": {"order": "desc"}}], "query": {"match_all": {}}},
+            body={
+                "size": 10000,
+                "sort": [{"@timestamp": {"order": "desc"}}],
+                "query": {"match_all": {}},
+            },
         ).body["hits"]
     except elasticsearch.exceptions.NotFoundError:
         return None

@@ -68,6 +68,7 @@ try:
         import elasticsearch
 
     from elastic_transport import RequestsHttpNode
+
     HAS_ELASTICSEARCH = True
     ES_MAJOR_VERSION = elasticsearch.__version__[0]
     logging.getLogger("elasticsearch").setLevel(logging.CRITICAL)
@@ -91,7 +92,10 @@ def __virtual__():
     if ES_MAJOR_VERSION < 8:
         return (False, "Cannot load the module, elasticserach version is not 8+")
     if ES_MAJOR_VERSION >= 9:
-        return (False, "Cannot load the module, elasticsearch version is 9+, use the elasticsearch9 module")
+        return (
+            False,
+            "Cannot load the module, elasticsearch version is 9+, use the elasticsearch9 module",
+        )
 
     return __virtualname__
 
@@ -169,7 +173,9 @@ def _get_instance(hosts=None, profile=None):
                         hosts = [host]
                         break
                     except elasticsearch.exceptions.TransportError as err:
-                        log.info(f"trying next host because {host} is unavailable due to {err.errors}")
+                        log.info(
+                            f"trying next host because {host} is unavailable due to {err.errors}"
+                        )
 
             elastic = elasticsearch.Elasticsearch(
                 hosts,
@@ -1071,12 +1077,13 @@ def document_create(
                 wait_for_active_shards=wait_for_active_shards,
             ).body
 
+    except elasticsearch.BadRequestError as err:
+        log.error(f"error uploading {document} to {index} with {err}")
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
             f"Cannot create document in index {index}, server returned errors {err.errors}"
         ) from err
-    except elasticsearch.BadRequestError as err:
-        log.error(f"error uploading {document} to {index} with {err}")
+
 
 def document_delete(
     index,
@@ -1351,15 +1358,18 @@ def document_get_all(
         return elastic.search(
             index=index,
             source_excludes=source_excludes,
-            body={'size': 10000, "sort": [{"@timestamp": {"order": "desc"}}], 'query':{'match_all':{}}}
-        ).body['hits']
+            body={
+                "size": 10000,
+                "sort": [{"@timestamp": {"order": "desc"}}],
+                "query": {"match_all": {}},
+            },
+        ).body["hits"]
     except elasticsearch.exceptions.NotFoundError:
         return None
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
             f"Cannot retrieve document {id} from index {index}, server returned errors {err.errors}"
         ) from err
-
 
 
 def document_update(
