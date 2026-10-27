@@ -10,5 +10,3 @@ _________________
     :toctree:
 
     elasticsearch6_mod
-    elasticsearch8_mod
-    elasticsearch9_mod
