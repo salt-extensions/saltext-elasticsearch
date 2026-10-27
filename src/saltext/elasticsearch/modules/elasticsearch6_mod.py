@@ -523,7 +523,7 @@ def document_create(
         URL of file specifying document to store. Cannot be used in combination with ``body``.
     id
         Optional unique document identifier for specified doc_type (empty for random)
-    id_
+    `id_`
         Alias for id (ES8-style parameter name)
 
     CLI Example:
@@ -591,7 +591,7 @@ def document_exists(index, id=None, id_=None, doc_type="_all", hosts=None, profi
         Index name where the document resides
     id
         Document identifier
-    id_
+    `id_`
         Alias for id (ES8-style parameter name)
     doc_type
         Type of the document, use _all to fetch the first document matching the ID across all types
@@ -628,7 +628,7 @@ def document_get(
         Index name where the document resides
     id
         Document identifier
-    id_
+    `id_`
         Alias for id (ES8-style parameter name)
     doc_type
         Type of the document, use _all to fetch the first document matching the ID across all types
@@ -662,7 +662,7 @@ def document_update(index, id_=None, body=None, hosts=None, profile=None, source
 
     index
         Index name where the document resides
-    id_
+    `id_`
         Document identifier
     body
         The update definition (script, doc, upsert, etc.)
