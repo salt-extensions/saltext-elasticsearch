@@ -36,59 +36,6 @@ def configure_loader_modules():
     return {elasticsearch_return: {}}
 
 
-@pytest.fixture
-def default_options():
-    """Default options returned by _get_options()."""
-    return {
-        "debug_returner_payload": False,
-        "doc_type": "default",
-        "functions_blacklist": [],
-        "index_date": False,
-        "master_event_index": "salt-master-event-cache",
-        "master_event_doc_type": "default",
-        "master_job_cache_index": "salt-master-job-cache",
-        "master_job_cache_doc_type": "default",
-        "number_of_shards": 1,
-        "number_of_replicas": 0,
-        "states_order_output": False,
-        "states_count": False,
-        "states_single_index": False,
-        "dev": False,
-        "failover": False,
-    }
-
-
-@pytest.fixture
-def mock_salt():
-    """Dict of mocked __salt__ functions."""
-    return {
-        "elasticsearch.index_exists": MagicMock(return_value=True),
-        "elasticsearch.index_create": MagicMock(return_value=True),
-        "elasticsearch.alias_exists": MagicMock(return_value=False),
-        "elasticsearch.alias_create": MagicMock(return_value=True),
-        "elasticsearch.alias_delete": MagicMock(return_value=True),
-        "elasticsearch.document_exists": MagicMock(return_value=False),
-        "elasticsearch.document_create": MagicMock(return_value=True),
-        "elasticsearch.document_get": MagicMock(return_value=None),
-        "elasticsearch.document_update": MagicMock(return_value=True),
-        "elasticsearch.search": MagicMock(return_value={"hits": {"hits": []}}),
-        "elasticsearch.document_get_all": MagicMock(return_value={"hits": []}),
-        "config.option": MagicMock(return_value={}),
-    }
-
-
-@pytest.fixture
-def sample_ret():
-    """Basic successful return payload."""
-    return {
-        "fun": "test.ping",
-        "jid": "20230101120000000000",
-        "id": "minion1",
-        "retcode": 0,
-        "return": True,
-    }
-
-
 # ---------------------------------------------------------------------------
 # __virtual__()
 # ---------------------------------------------------------------------------

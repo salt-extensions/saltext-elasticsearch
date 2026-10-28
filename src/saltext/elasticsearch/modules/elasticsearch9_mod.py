@@ -78,15 +78,15 @@ __virtualname__ = "elasticsearch"
 
 def __virtual__():
     """
-    Only load if elasticsearch librarielastic exist and ES version is 9+.
+    Only load if elasticsearch library exists and ES version is 9+.
     """
     if not HAS_ELASTICSEARCH:
         return (
             False,
-            "Cannot load module elasticsearch: elasticsearch librarielastic not found",
+            "Cannot load module elasticsearch: elasticsearch library not found",
         )
     if ES_MAJOR_VERSION < 9:
-        return (False, "Cannot load the module, elasticserach version is not 9+")
+        return (False, "Cannot load the module, elasticsearch version is not 9+")
 
     return __virtualname__
 
@@ -102,6 +102,7 @@ def _get_instance(hosts=None, profile=None):
     http_auth = None
     timeout = 10
     _profile = None
+    failover = None
 
     if profile is None:
         profile = "elasticsearch"
@@ -120,6 +121,7 @@ def _get_instance(hosts=None, profile=None):
         username = _profile.get("username", None)
         password = _profile.get("password", None)
         timeout = _profile.get("timeout", 10)
+        failover = _profile.get("failover", False)
 
         if username and password:
             http_auth = (username, password)
@@ -148,6 +150,24 @@ def _get_instance(hosts=None, profile=None):
                 node_class=RequestsHttpNode,
             )
         else:
+            if failover and len(hosts) > 1:
+                for host in hosts:
+                    tester = elasticsearch.Elasticsearch(
+                        host,
+                        ca_certs=ca_certs,
+                        verify_certs=verify_certs,
+                        http_auth=http_auth,
+                        request_timeout=timeout,
+                    )
+                    try:
+                        tester.info()
+                        hosts = [host]
+                        break
+                    except elasticsearch.exceptions.TransportError as err:
+                        log.info(
+                            f"trying next host because {host} is unavailable due to {err.errors}"
+                        )
+
             elastic = elasticsearch.Elasticsearch(
                 hosts,
                 ca_certs=ca_certs,
@@ -1130,7 +1150,7 @@ def document_delete(
         return None
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot delete document {id} in index {index}, server returned errors {err.errors}"
+            f"Cannot delete document {id_} in index {index}, server returned errors {err.errors}"
         ) from err
 
 
@@ -1219,7 +1239,7 @@ def document_exists(
         return False
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot retrieve document {id} from index {index}, server returned errors {err.errors}"
+            f"Cannot retrieve document {id_} from index {index}, server returned errors {err.errors}"
         ) from err
 
 
@@ -1282,7 +1302,7 @@ def document_get(
         return None
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot retrieve document {id} from index {index}, server returned errors {err.errors}"
+            f"Cannot retrieve document {id_} from index {index}, server returned errors {err.errors}"
         ) from err
 
 
@@ -1305,12 +1325,15 @@ def document_get_all(
     stored_fields=None,
     version=None,
     version_type=None,
+    sort=None,
 ):
     """
     Get all documents in an index
 
     index
         Index name where the document resides
+    sort
+        Optional sort definition for the search body; no sorting is applied when omitted
 
     CLI Example:
 
@@ -1321,14 +1344,13 @@ def document_get_all(
     elastic = _get_instance(hosts=hosts, profile=profile)
 
     try:
+        body = {"size": 10000, "query": {"match_all": {}}}
+        if sort is not None:
+            body["sort"] = sort
         return elastic.search(
             index=index,
             source_excludes=source_excludes,
-            body={
-                "size": 10000,
-                "sort": [{"@timestamp": {"order": "desc"}}],
-                "query": {"match_all": {}},
-            },
+            body=body,
         ).body["hits"]
     except elasticsearch.exceptions.NotFoundError:
         return None
@@ -4123,7 +4145,7 @@ def pipeline_get(
         return None
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot create pipeline {id}, server returned errors {err.errors}"
+            f"Cannot create pipeline {id_}, server returned errors {err.errors}"
         ) from err
     except AttributeError as err:
         raise CommandExecutionError("Method is applicable only for Elasticsearch 5.0+") from err
@@ -4175,7 +4197,7 @@ def pipeline_delete(
         return True
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot delete pipeline {id}, server returned errors {err.errors}"
+            f"Cannot delete pipeline {id_}, server returned errors {err.errors}"
         ) from err
     except AttributeError as err:
         raise CommandExecutionError("Method is applicable only for Elasticsearch 5.0+") from err
@@ -4263,7 +4285,7 @@ def pipeline_create(
         return out.get("acknowledged", False)
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot create pipeline {id}, server returned errors {err.errors}"
+            f"Cannot create pipeline {id_}, server returned errors {err.errors}"
         ) from err
     except AttributeError as err:
         raise CommandExecutionError("Method is applicable only for Elasticsearch 5.0+") from err
@@ -4318,7 +4340,7 @@ def pipeline_simulate(
 
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot simulate pipeline {id}, server returned errors {err.errors}"
+            f"Cannot simulate pipeline {id_}, server returned errors {err.errors}"
         ) from err
     except AttributeError as err:
         raise CommandExecutionError("Method is applicable only for Elasticsearch 5.0+") from err
@@ -4365,7 +4387,7 @@ def script_get(
         return None
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot obtain search template {id}, server returned errors {err.errors}"
+            f"Cannot obtain search template {id_}, server returned errors {err.errors}"
         ) from err
 
 
@@ -4415,7 +4437,7 @@ def script_create(
         return result.get("acknowledged", False)
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot create search template {id}, server returned errors {err.errors}"
+            f"Cannot create search template {id_}, server returned errors {err.errors}"
         ) from err
 
 
@@ -4465,7 +4487,7 @@ def script_delete(
         return True
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot delete search template {id}, server returned errors {err.errors}"
+            f"Cannot delete search template {id_}, server returned errors {err.errors}"
         ) from err
 
 

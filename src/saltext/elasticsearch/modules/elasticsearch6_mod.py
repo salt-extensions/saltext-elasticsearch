@@ -3,7 +3,7 @@ Salt execution module
 
 Elasticsearch - A distributed RESTful search and analytics server for Elasticsearch 7 and below
 Module to provide Elasticsearch compatibility to Salt
-(compatible with Elasticsearch version 8+).  Copied from elasticsearch.py module and updated.
+(compatible with Elasticsearch versions 7 and below).  Copied from elasticsearch.py module and updated.
 
 .. versionadded:: 3005.1
 
@@ -76,12 +76,12 @@ log = logging.getLogger(__name__)
 
 def __virtual__():
     """
-    Only load if elasticsearch librarielastic exist and ES version is 8+.
+    Only load if elasticsearch library exists and ES version is 7 or below.
     """
     if not HAS_ELASTICSEARCH:
         return (
             False,
-            "Cannot load module elasticsearch: elasticsearch librarielastic not found",
+            "Cannot load module elasticsearch: elasticsearch library not found",
         )
     if ES_MAJOR_VERSION >= 8:
         return (
@@ -104,6 +104,7 @@ def _get_instance(hosts=None, profile=None):
     http_auth = None
     timeout = 10
     _profile = None
+    failover = None
 
     if profile is None:
         profile = "elasticsearch"
@@ -123,6 +124,7 @@ def _get_instance(hosts=None, profile=None):
         username = _profile.get("username", None)
         password = _profile.get("password", None)
         timeout = _profile.get("timeout", 10)
+        failover = _profile.get("failover", False)
 
         if username and password:
             http_auth = (username, password)
@@ -151,6 +153,23 @@ def _get_instance(hosts=None, profile=None):
                 timeout=timeout,
             )
         else:
+            if failover and len(hosts) > 1:
+                for host in hosts:
+                    tester = elasticsearch.Elasticsearch(
+                        host,
+                        use_ssl=use_ssl,
+                        ca_certs=ca_certs,
+                        verify_certs=verify_certs,
+                        http_auth=http_auth,
+                        timeout=timeout,
+                    )
+                    try:
+                        tester.info()
+                        hosts = [host]
+                        break
+                    except elasticsearch.exceptions.TransportError as err:
+                        log.info(f"trying next host because {host} is unavailable due to {err}")
+
             es = elasticsearch.Elasticsearch(
                 hosts,
                 use_ssl=use_ssl,
@@ -656,7 +675,9 @@ def document_get(
         )
 
 
-def document_update(index, id_=None, body=None, hosts=None, profile=None, source=None):
+def document_update(
+    index, id_=None, body=None, hosts=None, profile=None, source=None, retry_on_conflict=None
+):
     """
     Update a document in a specified index
 
@@ -668,6 +689,8 @@ def document_update(index, id_=None, body=None, hosts=None, profile=None, source
         The update definition (script, doc, upsert, etc.)
     source
         URL to file specifying the update definition. Cannot be used in combination with ``body``.
+    retry_on_conflict
+        Number of times to retry the update when a version conflict occurs
 
     CLI Example:
 
@@ -679,7 +702,9 @@ def document_update(index, id_=None, body=None, hosts=None, profile=None, source
     if source:
         body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
     try:
-        return es.update(index=index, doc_type="_doc", id=id_, body=body)
+        return es.update(
+            index=index, doc_type="_doc", id=id_, body=body, retry_on_conflict=retry_on_conflict
+        )
     except elasticsearch.TransportError as e:
         raise CommandExecutionError(
             "Cannot update document {} in index {}, server returned code {} with"
@@ -688,7 +713,7 @@ def document_update(index, id_=None, body=None, hosts=None, profile=None, source
 
 
 # pylint: disable=unused-argument
-def document_get_all(index, source_excludes=None, hosts=None, profile=None):
+def document_get_all(index, source_excludes=None, hosts=None, profile=None, sort=None):
     """
     Get all documents in an index
 
@@ -696,6 +721,8 @@ def document_get_all(index, source_excludes=None, hosts=None, profile=None):
         Index name where the documents reside
     source_excludes
         Accepted for ES8-style call compatibility; not applied by the ES6 client
+    sort
+        Optional sort definition for the search body; no sorting is applied when omitted
 
     CLI Example:
 
@@ -706,14 +733,10 @@ def document_get_all(index, source_excludes=None, hosts=None, profile=None):
     es = _get_instance(hosts, profile)
 
     try:
-        return es.search(
-            index=index,
-            body={
-                "size": 10000,
-                "sort": [{"@timestamp": {"order": "desc"}}],
-                "query": {"match_all": {}},
-            },
-        )["hits"]
+        body = {"size": 10000, "query": {"match_all": {}}}
+        if sort is not None:
+            body["sort"] = sort
+        return es.search(index=index, body=body)["hits"]
     except elasticsearch.exceptions.NotFoundError:
         return None
     except elasticsearch.TransportError as e:
@@ -738,7 +761,7 @@ def search(
     q
         Query in the Lucene query string syntax
     source_excludes
-        Accepted for ES8-style call compatibility; not applied by the ES6 client
+        List of source fields to exclude from the response (passed as ``_source.excludes`` in the body)
 
     CLI Example:
 
@@ -752,7 +775,10 @@ def search(
         if size is not None:
             body["size"] = size
         if source_excludes is not None:
-            body["_source_exclude"] = source_excludes
+            if isinstance(body.get("_source"), dict):
+                body["_source"]["excludes"] = source_excludes
+            else:
+                body["_source"] = {"excludes": source_excludes}
         if q is not None:
             body["query"] = {"query_string": {"query": q}}
     try:
