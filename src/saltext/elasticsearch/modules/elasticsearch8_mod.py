@@ -61,14 +61,18 @@ from salt.exceptions import CommandExecutionError
 from salt.exceptions import SaltInvocationError
 
 log = logging.getLogger(__name__)
-
 try:
-    import elasticsearch
+    try:
+        import elasticsearch8 as elasticsearch
+    except ImportError:
+        import elasticsearch
+
     from elastic_transport import RequestsHttpNode
 
     HAS_ELASTICSEARCH = True
     ES_MAJOR_VERSION = elasticsearch.__version__[0]
     logging.getLogger("elasticsearch").setLevel(logging.CRITICAL)
+    logging.getLogger("elastic_transport.transport").setLevel(logging.CRITICAL)
 except ImportError:
     HAS_ELASTICSEARCH = False
     ES_MAJOR_VERSION = 0
@@ -78,15 +82,20 @@ __virtualname__ = "elasticsearch"
 
 def __virtual__():
     """
-    Only load if elasticsearch librarielastic exist and ES version is 8+.
+    Only load if elasticsearch library exists and ES version is 8+.
     """
     if not HAS_ELASTICSEARCH:
         return (
             False,
-            "Cannot load module elasticsearch: elasticsearch librarielastic not found",
+            "Cannot load module elasticsearch: elasticsearch library not found",
         )
     if ES_MAJOR_VERSION < 8:
-        return (False, "Cannot load the module, elasticserach version is not 8+")
+        return (False, "Cannot load the module, elasticsearch version is not 8+")
+    if ES_MAJOR_VERSION >= 9:
+        return (
+            False,
+            "Cannot load the module, elasticsearch version is 9+, use the elasticsearch9 module",
+        )
 
     return __virtualname__
 
@@ -102,6 +111,7 @@ def _get_instance(hosts=None, profile=None):
     http_auth = None
     timeout = 10
     _profile = None
+    failover = None
 
     if profile is None:
         profile = "elasticsearch"
@@ -120,6 +130,7 @@ def _get_instance(hosts=None, profile=None):
         username = _profile.get("username", None)
         password = _profile.get("password", None)
         timeout = _profile.get("timeout", 10)
+        failover = _profile.get("failover", False)
 
         if username and password:
             http_auth = (username, password)
@@ -143,16 +154,34 @@ def _get_instance(hosts=None, profile=None):
                 hosts,
                 ca_certs=ca_certs,
                 verify_certs=verify_certs,
-                http_auth=http_auth,
+                basic_auth=http_auth,
                 request_timeout=timeout,
                 node_class=RequestsHttpNode,
             )
         else:
+            if failover and len(hosts) > 1:
+                for host in hosts:
+                    tester = elasticsearch.Elasticsearch(
+                        host,
+                        ca_certs=ca_certs,
+                        verify_certs=verify_certs,
+                        basic_auth=http_auth,
+                        request_timeout=timeout,
+                    )
+                    try:
+                        tester.info()
+                        hosts = [host]
+                        break
+                    except elasticsearch.exceptions.TransportError as err:
+                        log.info(
+                            f"trying next host because {host} is unavailable due to {err.errors}"
+                        )
+
             elastic = elasticsearch.Elasticsearch(
                 hosts,
                 ca_certs=ca_certs,
                 verify_certs=verify_certs,
-                http_auth=http_auth,
+                basic_auth=http_auth,
                 request_timeout=timeout,
             )
 
@@ -1003,6 +1032,7 @@ def document_create(
         raise SaltInvocationError(message)
     if source:
         body = __salt__["cp.get_file_str"](source, saltenv=__opts__.get("saltenv", "base"))
+
     try:
         if body is not None:
             return elastic.index(
@@ -1130,7 +1160,7 @@ def document_delete(
         return None
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot delete document {id} in index {index}, server returned errors {err.errors}"
+            f"Cannot delete document {id_} in index {index}, server returned errors {err.errors}"
         ) from err
 
 
@@ -1219,7 +1249,7 @@ def document_exists(
         return False
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot retrieve document {id} from index {index}, server returned errors {err.errors}"
+            f"Cannot retrieve document {id_} from index {index}, server returned errors {err.errors}"
         ) from err
 
 
@@ -1282,7 +1312,63 @@ def document_get(
         return None
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot retrieve document {id} from index {index}, server returned errors {err.errors}"
+            f"Cannot retrieve document {id_} from index {index}, server returned errors {err.errors}"
+        ) from err
+
+
+# pylint: disable=unused-argument
+def document_get_all(
+    index,
+    hosts=None,
+    profile=None,
+    error_trace=None,
+    filter_path=None,
+    human=None,
+    preference=None,
+    pretty=None,
+    realtime=None,
+    refresh=None,
+    routing=None,
+    source=None,
+    source_excludes=None,
+    source_includes=None,
+    stored_fields=None,
+    version=None,
+    version_type=None,
+    sort=None,
+):
+    """
+    Get all documents in an index
+
+    index
+        Index name where the document resides
+    doc_type
+        Type of the document, use _all to fetch the first document matching the ID across all types
+    sort
+        Optional sort definition for the search body; no sorting is applied when omitted
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt myminion elasticsearch.document_get_all testindex
+    """
+    elastic = _get_instance(hosts=hosts, profile=profile)
+
+    try:
+        body = {"size": 10000, "query": {"match_all": {}}}
+        if sort is not None:
+            body["sort"] = sort
+        return elastic.search(
+            index=index,
+            source_excludes=source_excludes,
+            body=body,
+        ).body["hits"]
+    except elasticsearch.exceptions.NotFoundError:
+        return None
+    except elasticsearch.TransportError as err:
+        raise CommandExecutionError(
+            f"Cannot retrieve documents from index {index}, server returned errors {err.errors}"
         ) from err
 
 
@@ -1403,6 +1489,7 @@ def document_update(
                 update_body["doc_as_upsert"] = doc_as_upsert
             if scripted_upsert is not None:
                 update_body["scripted_upsert"] = scripted_upsert
+        log.debug(f"document_update body {update_body}")
         return elastic.update(
             index=index,
             id=id_,
@@ -1906,7 +1993,6 @@ def index_create(
         if src_map is not None:
             settings = src_map.get("settings")
             mappings = src_map.get("mappings")
-
         result = elastic.indices.create(
             index=index,
             aliases=aliases,
@@ -1922,7 +2008,7 @@ def index_create(
         ).body
         return result.get("acknowledged", False) and result.get("shards_acknowledged", True)
     except elasticsearch.TransportError as err:
-        if "index_already_exists_exception" in err.errors:
+        if "already_exists_exception" in err.message:
             return True
         raise CommandExecutionError(
             f"Cannot create index {index}, server returned errors {err.errors}"
@@ -3076,7 +3162,7 @@ def pipeline_get(
         return None
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot create pipeline {id}, server returned errors {err.errors}"
+            f"Cannot create pipeline {id_}, server returned errors {err.errors}"
         ) from err
     except AttributeError as err:
         raise CommandExecutionError("Method is applicable only for Elasticsearch 5.0+") from err
@@ -3128,7 +3214,7 @@ def pipeline_delete(
         return True
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot delete pipeline {id}, server returned errors {err.errors}"
+            f"Cannot delete pipeline {id_}, server returned errors {err.errors}"
         ) from err
     except AttributeError as err:
         raise CommandExecutionError("Method is applicable only for Elasticsearch 5.0+") from err
@@ -3216,7 +3302,7 @@ def pipeline_create(
         return out.get("acknowledged", False)
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot create pipeline {id}, server returned errors {err.errors}"
+            f"Cannot create pipeline {id_}, server returned errors {err.errors}"
         ) from err
     except AttributeError as err:
         raise CommandExecutionError("Method is applicable only for Elasticsearch 5.0+") from err
@@ -3271,7 +3357,7 @@ def pipeline_simulate(
 
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot simulate pipeline {id}, server returned errors {err.errors}"
+            f"Cannot simulate pipeline {id_}, server returned errors {err.errors}"
         ) from err
     except AttributeError as err:
         raise CommandExecutionError("Method is applicable only for Elasticsearch 5.0+") from err
@@ -3318,7 +3404,7 @@ def script_get(
         return None
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot obtain search template {id}, server returned errors {err.errors}"
+            f"Cannot obtain search template {id_}, server returned errors {err.errors}"
         ) from err
 
 
@@ -3368,7 +3454,7 @@ def script_create(
         return result.get("acknowledged", False)
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot create search template {id}, server returned errors {err.errors}"
+            f"Cannot create search template {id_}, server returned errors {err.errors}"
         ) from err
 
 
@@ -3418,7 +3504,7 @@ def script_delete(
         return True
     except elasticsearch.TransportError as err:
         raise CommandExecutionError(
-            f"Cannot delete search template {id}, server returned errors {err.errors}"
+            f"Cannot delete search template {id_}, server returned errors {err.errors}"
         ) from err
 
 

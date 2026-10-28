@@ -1,10 +1,22 @@
 import logging
 import os
+import uuid
 
 import pytest
-from saltfactories.utils import random_string
 
-from saltext.elasticsearch import PACKAGE_ROOT
+try:
+    from saltfactories.utils import random_string
+except ImportError:
+    # saltfactories is only needed for the integration test fixtures below;
+    # unit tests do not require it.
+    def random_string(prefix):
+        return prefix + "-" + str(uuid.uuid4())[:8]
+
+
+try:
+    from saltext.elasticsearch import PACKAGE_ROOT
+except ImportError:
+    PACKAGE_ROOT = None
 
 # Reset the root logger to its default level(because salt changed it)
 logging.root.setLevel(logging.WARNING)

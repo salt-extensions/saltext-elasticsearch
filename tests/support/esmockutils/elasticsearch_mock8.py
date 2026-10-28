@@ -694,3 +694,38 @@ class MockElastic:
         if self.failure:
             raise TransportError("customer error", (123, 0))
         return {"acknowledged": self.ack}
+
+    @eswrapper
+    def update(self, *args, **kwargs):
+        """
+        Mock of update method
+        """
+        if self.failure:
+            raise TransportError("customer error", (123, 0))
+        return {"_id": "123", "_index": "test", "result": "updated"}
+
+    @eswrapper
+    def search(self, *args, **kwargs):
+        """
+        Mock of search method
+        """
+        if self.failure:
+            raise TransportError("customer error", (123, 0))
+        return {
+            "hits": {
+                "total": {"value": 2, "relation": "eq"},
+                "hits": [
+                    {"_id": "1", "_source": {"field": "value1"}},
+                    {"_id": "2", "_source": {"field": "value2"}},
+                ],
+            }
+        }
+
+    @eswrapper
+    def bulk(self, *args, **kwargs):
+        """
+        Mock of bulk method
+        """
+        if self.failure:
+            raise TransportError("customer error", (123, 0))
+        return {"took": 10, "errors": False, "items": []}
